@@ -6,6 +6,7 @@ const { expandDecimals, getBlockTime, increaseTime, mineBlock } = require("../sh
 use(solidity)
 
 describe("GMT", function () {
+  console.log("111")
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let gmt
@@ -26,6 +27,11 @@ describe("GMT", function () {
       .to.be.revertedWith("GMT: forbidden")
 
     expect(await gmt.gov()).eq(wallet.address)
+
+    // console.log("update gov:",wallet.address)
+    // console.log("user1:",user1.address)
+    // await expect(gmt.connect(wallet).setGov(user1.address))
+    // console.log("gov:",await gmt.gov())
 
     await gmt.setGov(user0.address)
     expect(await gmt.gov()).eq(user0.address)
@@ -165,6 +171,7 @@ describe("GMT", function () {
   })
 
   it("transfer", async () => {
+    console.log("amount:",expandDecimals(1000, 18).toString())
     expect(await gmt.balanceOf(wallet.address)).eq(expandDecimals(1000 * 1000, 18))
     expect(await gmt.balanceOf(user0.address)).eq(0)
     await gmt.transfer(user0.address, expandDecimals(1000, 18))

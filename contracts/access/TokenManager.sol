@@ -9,20 +9,21 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "../peripherals/interfaces/ITimelock.sol";
 
+//token管理员
 contract TokenManager is ReentrancyGuard {
     using SafeMath for uint256;
 
     bool public isInitialized;
 
-    uint256 public actionsNonce;
+    uint256 public actionsNonce; //次数
     uint256 public minAuthorizations;
 
     address public admin;
 
-    address[] public signers;
+    address[] public signers; //签名数组
     mapping (address => bool) public isSigner;
     mapping (bytes32 => bool) public pendingActions;
-    mapping (address => mapping (bytes32 => bool)) public signedActions;
+    mapping (address => mapping (bytes32 => bool)) public signedActions; //签名管理
 
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action, uint256 nonce);
     event SignalApproveNFT(address token, address spender, uint256 tokenId, bytes32 action, uint256 nonce);

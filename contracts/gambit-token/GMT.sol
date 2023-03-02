@@ -6,6 +6,7 @@ import "../libraries/math/SafeMath.sol";
 import "../libraries/token/IERC20.sol";
 import "./interfaces/IGMT.sol";
 import "../peripherals/interfaces/ITimelockTarget.sol";
+import "hardhat/console.sol";
 
 contract GMT is IERC20, IGMT, ITimelockTarget {
     using SafeMath for uint256;
@@ -15,7 +16,7 @@ contract GMT is IERC20, IGMT, ITimelockTarget {
     uint8 public constant decimals = 18;
 
     uint256 public override totalSupply;
-    address public gov;
+    address public gov; //可拉黑地址,添加删除admin
 
     bool public hasActiveMigration;
     uint256 public migrationTime;
@@ -41,7 +42,7 @@ contract GMT is IERC20, IGMT, ITimelockTarget {
     mapping (address => bool) public allowedMsgSenders;
 
     modifier onlyGov() {
-        require(msg.sender == gov, "GMT: forbidden");
+        require(msg.sender == gov, "GMT: forbidden1");
         _;
     }
 

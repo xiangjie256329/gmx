@@ -13,31 +13,31 @@ import "../peripherals/interfaces/ITimelockTarget.sol";
 contract Treasury is ReentrancyGuard, ITimelockTarget {
     using SafeMath for uint256;
 
-    uint256 constant PRECISION = 1000000;
-    uint256 constant BASIS_POINTS_DIVISOR = 10000;
+    uint256 constant PRECISION = 1000000;//精度
+    uint256 constant BASIS_POINTS_DIVISOR = 10000;//相当于100%,增加2位小数,单边添加流动性时,u和gmt由构造时提供比例
 
-    bool public isInitialized;
-    bool public isSwapActive = true;
-    bool public isLiquidityAdded = false;
+    bool public isInitialized;//是否初始
+    bool public isSwapActive = true;//是否可swap
+    bool public isLiquidityAdded = false;//是否添加流动性,只能加一次
 
-    address public gmt;
-    address public busd;
-    address public router;
-    address public fund;
+    address public gmt;//gmt地址
+    address public busd;//u的地址
+    address public router;//pancake router的地址
+    address public fund;//u的资金池
 
-    uint256 public gmtPresalePrice;
-    uint256 public gmtListingPrice;
-    uint256 public busdSlotCap;
-    uint256 public busdHardCap;
-    uint256 public busdBasisPoints;
-    uint256 public unlockTime;
+    uint256 public gmtPresalePrice;//gmt销售价格
+    uint256 public gmtListingPrice;//标价
+    uint256 public busdSlotCap;//用户swap的u总上限
+    uint256 public busdHardCap;//单次swap上限
+    uint256 public busdBasisPoints;//u基准点
+    uint256 public unlockTime;//只能增加
 
-    uint256 public busdReceived;
+    uint256 public busdReceived;//接收的busd金额
 
-    address public gov;
+    address public gov;//gov地址
 
-    mapping (address => uint256) public swapAmounts;
-    mapping (address => bool) public swapWhitelist;
+    mapping (address => uint256) public swapAmounts;//用户=>swap的总u金额
+    mapping (address => bool) public swapWhitelist;//用户=>是否有swap的权限
 
     modifier onlyGov() {
         require(msg.sender == gov, "Treasury: forbidden");
@@ -101,6 +101,8 @@ contract Treasury is ReentrancyGuard, ITimelockTarget {
         swapWhitelist[nextAccount] = true;
     }
 
+    //使用usdt购买gmt,gmtPresalePrice价格是在构造时设定
+    //需要添加了白名单才能swap
     function swap(uint256 _busdAmount) external nonReentrant {
         address account = msg.sender;
         require(swapWhitelist[account], "Treasury: forbidden");
@@ -124,6 +126,7 @@ contract Treasury is ReentrancyGuard, ITimelockTarget {
         IERC20(gmt).transfer(account, gmtAmount);
     }
 
+    //加u的流动性,u加一半,gmt数量按标计价转换
     function addLiquidity() external onlyGov nonReentrant {
         require(!isLiquidityAdded, "Treasury: liquidity already added");
         isLiquidityAdded = true;
