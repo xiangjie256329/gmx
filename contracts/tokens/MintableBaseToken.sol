@@ -5,6 +5,7 @@ pragma solidity 0.6.12;
 import "./BaseToken.sol";
 import "./interfaces/IMintable.sol";
 
+//可mint的baseToken
 contract MintableBaseToken is BaseToken, IMintable {
 
     mapping (address => bool) public override isMinter;

@@ -32,22 +32,22 @@ import "../libraries/math/SafeMath.sol";
 contract FaucetToken is IERC20 {
     using SafeMath for uint256;
 
-    uint256 public DROPLET_INTERVAL = 8 hours;
+    uint256 public DROPLET_INTERVAL = 8 hours;//drop间隔
 
-    address public _gov;
-    uint256 public _dropletAmount;
-    bool public _isFaucetEnabled;
+    address public _gov;//gov地址
+    uint256 public _dropletAmount;//单次水龙头领取金额
+    bool public _isFaucetEnabled;//开启水龙头
 
-    mapping (address => uint256) public _claimedAt;
+    mapping (address => uint256) public _claimedAt;//领取地址=>时间
 
-    uint256 private _totalSupply;
+    uint256 private _totalSupply;//总供应
 
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
+    string private _name;//name
+    string private _symbol;//symbol
+    uint8 private _decimals;//decimal
 
-    mapping (address => uint256) private _balances;
-    mapping (address => mapping (address => uint256)) private _allowances;
+    mapping (address => uint256) private _balances;//balance
+    mapping (address => mapping (address => uint256)) private _allowances;//allowances
 
     /**
      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
@@ -71,26 +71,31 @@ contract FaucetToken is IERC20 {
         _dropletAmount = dropletAmount;
     }
 
+    //gov铸币
     function mint(address account, uint256 amount) public {
         require(msg.sender == _gov, "FaucetToken: forbidden");
         _mint(account, amount);
     }
 
+    //开启水龙头
     function enableFaucet() public {
         require(msg.sender == _gov, "FaucetToken: forbidden");
         _isFaucetEnabled = true;
     }
 
+    //关闭水龙头
     function disableFaucet() public {
         require(msg.sender == _gov, "FaucetToken: forbidden");
         _isFaucetEnabled = false;
     }
 
+    //设置空投金额
     function setDropletAmount(uint256 dropletAmount) public {
         require(msg.sender == _gov, "FaucetToken: forbidden");
         _dropletAmount = dropletAmount;
     }
 
+    //领取空投
     function claimDroplet() public {
         require(_isFaucetEnabled, "FaucetToken: faucet not enabled");
         require(_claimedAt[msg.sender].add(DROPLET_INTERVAL) <= block.timestamp, "FaucetToken: droplet not available yet");

@@ -10,7 +10,7 @@ import "./interfaces/IGmxIou.sol";
 contract GmxIou is IERC20, IGmxIou {
     using SafeMath for uint256;
 
-    mapping (address => uint256) private _balances;
+    mapping (address => uint256) private _balances;//金额
     uint256 public override totalSupply;
 
     string public name;

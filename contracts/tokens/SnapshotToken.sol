@@ -4,6 +4,7 @@ pragma solidity 0.6.12;
 
 import "./MintableBaseToken.sol";
 
+//minter给accounts批量mint
 contract SnapshotToken is MintableBaseToken {
     constructor(string memory _name, string memory _symbol, uint256 _initialSupply) public MintableBaseToken(_name, _symbol, _initialSupply) {
     }

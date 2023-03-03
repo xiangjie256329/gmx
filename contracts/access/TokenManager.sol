@@ -21,7 +21,7 @@ contract TokenManager is ReentrancyGuard {
     address public admin;
 
     address[] public signers; //签名数组
-    mapping (address => bool) public isSigner;
+    mapping (address => bool) public isSigner;//是否是白名单
     mapping (bytes32 => bool) public pendingActions;
     mapping (address => mapping (bytes32 => bool)) public signedActions; //签名管理
 
@@ -63,6 +63,7 @@ contract TokenManager is ReentrancyGuard {
         return signers.length;
     }
 
+    //admin先发信号approve
     function signalApprove(address _token, address _spender, uint256 _amount) external nonReentrant onlyAdmin {
         actionsNonce++;
         uint256 nonce = actionsNonce;
@@ -71,6 +72,7 @@ contract TokenManager is ReentrancyGuard {
         emit SignalApprove(_token, _spender, _amount, action, nonce);
     }
 
+    //signer再计算出action,如果发现在pending中,则标记通过
     function signApprove(address _token, address _spender, uint256 _amount, uint256 _nonce) external nonReentrant onlySigner {
         bytes32 action = keccak256(abi.encodePacked("approve", _token, _spender, _amount, _nonce));
         _validateAction(action);
@@ -79,6 +81,7 @@ contract TokenManager is ReentrancyGuard {
         emit SignAction(action, _nonce);
     }
 
+    //admin再同意进行approve,这样spender就可以花tokenmanager中的_token了
     function approve(address _token, address _spender, uint256 _amount, uint256 _nonce) external nonReentrant onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("approve", _token, _spender, _amount, _nonce));
         _validateAction(action);

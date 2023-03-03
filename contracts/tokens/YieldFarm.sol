@@ -8,10 +8,11 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "./YieldToken.sol";
 
+//产出质押
 contract YieldFarm is YieldToken, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    address public stakingToken;
+    address public stakingToken; 
 
     constructor(string memory _name, string memory _symbol, address _stakingToken) public YieldToken(_name, _symbol, 0) {
         stakingToken = _stakingToken;

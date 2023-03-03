@@ -65,6 +65,7 @@ contract MigrationHandler is ReentrancyGuard {
         busd = _busd;
     }
 
+    //赎回usdg
     function redeemUsdg(
         address _migrator,
         address _redemptionToken,
@@ -139,6 +140,7 @@ contract MigrationHandler is ReentrancyGuard {
         );
     }
 
+    //退款
     function refund(
         address _migrator,
         address _account,

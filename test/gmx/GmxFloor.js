@@ -27,7 +27,7 @@ describe("GmxFloor", function () {
       gmx.address, // _gmx
       eth.address, // _reserveToken
       expandDecimals(1000, 18), // _backedSupply
-      expandDecimals(5, 30 - 4), // _baseMintPrice, 1 ETH => $4000, 0.0005 ETH => $2
+      expandDecimals(5, 30 - 4), // _baseMintPrice, 1 ETH => $4000, 0.0005 ETH => $2 1gmx = 0.0005eth
       expandDecimals(5, 30 - 4 - 6), // _mintMultiplier, 0.0025 ETH => $10, 0.0025 / 5 million, 0.0005 / 1 million
       expandDecimals(1, 18), // _multiplierPrecision
       2
@@ -52,10 +52,13 @@ describe("GmxFloor", function () {
     expect(await gmxFloor.gmx()).eq(gmx.address)
     expect(await gmxFloor.reserveToken()).eq(eth.address)
     expect(await gmxFloor.backedSupply()).eq(expandDecimals(1000, 18))
+    //500000000
     expect(await gmxFloor.baseMintPrice()).eq("500000000000000000000000000")
+    //500
     expect(await gmxFloor.mintMultiplier()).eq("500000000000000000000")
     expect(await gmxFloor.multiplierPrecision()).eq(expandDecimals(1, 18))
 
+    //只能初始化一次
     await expect(gmxFloor.initialize([signer0.address, signer1.address, signer2.address]))
       .to.be.revertedWith("TokenManager: already initialized")
 
@@ -128,7 +131,7 @@ describe("GmxFloor", function () {
 
     expect(await eth.balanceOf(user0.address)).eq(expandDecimals(1, 18))
     expect(await gmx.balanceOf(user1.address)).eq(0)
-
+    //1个eth铸不出2000个gmx
     await expect(gmxFloor.connect(user0).mint(expandDecimals(2000, 18), expandDecimals(1, 18), user1.address))
       .to.be.revertedWith("GmxFloor: _maxCost exceeded")
 
@@ -162,6 +165,7 @@ describe("GmxFloor", function () {
   })
 
   it("signalApprove", async () => {
+    //approve user2 使用user0 5个eth
     await expect(gmxFloor.connect(user0).signalApprove(eth.address, user2.address, expandDecimals(5, 18)))
       .to.be.revertedWith("TokenManager: forbidden")
 
@@ -464,4 +468,4 @@ describe("GmxFloor", function () {
     await gmxFloor.connect(signer2).setAdmin(timelock.address, user1.address, 1)
     expect(await timelock.admin()).eq(user1.address)
   })
-})
+ })

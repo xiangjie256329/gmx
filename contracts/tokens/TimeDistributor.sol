@@ -12,13 +12,13 @@ contract TimeDistributor is IDistributor {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 public constant DISTRIBUTION_INTERVAL = 1 hours;
-    address public gov;
-    address public admin;
+    uint256 public constant DISTRIBUTION_INTERVAL = 1 hours; //分发间隔
+    address public gov; //gov地址
+    address public admin; //admin地址
 
-    mapping (address => address) public rewardTokens;
-    mapping (address => uint256) public override tokensPerInterval;
-    mapping (address => uint256) public lastDistributionTime;
+    mapping (address => address) public rewardTokens; //奖励token addr数组
+    mapping (address => uint256) public override tokensPerInterval;//用户=>每个interval的奖励数
+    mapping (address => uint256) public lastDistributionTime;//上一次发奖励时间
 
     event Distribute(address receiver, uint256 amount);
     event DistributionChange(address receiver, uint256 amount, address rewardToken);
@@ -43,6 +43,7 @@ contract TimeDistributor is IDistributor {
         gov = _gov;
     }
 
+    //管理员设置每个interval(小时)receiver可获取的amount
     function setTokensPerInterval(address _receiver, uint256 _amount) external onlyAdmin {
         if (lastDistributionTime[_receiver] != 0) {
             uint256 intervals = getIntervals(_receiver);
@@ -54,10 +55,12 @@ contract TimeDistributor is IDistributor {
         emit TokensPerIntervalChange(_receiver, _amount);
     }
 
+    //更新分发奖励的时间
     function updateLastDistributionTime(address _receiver) external onlyAdmin {
         _updateLastDistributionTime(_receiver);
     }
 
+    //gov设置分发金额和奖励金额
     function setDistribution(
         address[] calldata _receivers,
         uint256[] calldata _amounts,
@@ -80,6 +83,7 @@ contract TimeDistributor is IDistributor {
         }
     }
 
+    //给receiver转间隔小时的奖励token金额
     function distribute() external override returns (uint256) {
         address receiver = msg.sender;
         uint256 intervals = getIntervals(receiver);
@@ -97,10 +101,12 @@ contract TimeDistributor is IDistributor {
         return amount;
     }
 
+    //根据用户获取奖励token
     function getRewardToken(address _receiver) external override view returns (address) {
         return rewardTokens[_receiver];
     }
 
+    //amount=单次分发数*间隔小时
     function getDistributionAmount(address _receiver) public override view returns (uint256) {
         uint256 _tokensPerInterval = tokensPerInterval[_receiver];
         if (_tokensPerInterval == 0) { return 0; }
@@ -113,6 +119,7 @@ contract TimeDistributor is IDistributor {
         return amount;
     }
 
+    //获取前后2次的间隔小时数
     function getIntervals(address _receiver) public view returns (uint256) {
         uint256 timeDiff = block.timestamp.sub(lastDistributionTime[_receiver]);
         return timeDiff.div(DISTRIBUTION_INTERVAL);

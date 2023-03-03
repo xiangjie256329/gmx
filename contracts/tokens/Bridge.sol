@@ -9,6 +9,7 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "../access/Governable.sol";
 
+//eth与weth之间的转换
 contract Bridge is ReentrancyGuard, Governable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;

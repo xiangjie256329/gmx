@@ -21,22 +21,22 @@ import "../libraries/token/IERC20.sol";
 contract Timelock is ITimelock {
     using SafeMath for uint256;
 
-    uint256 public constant PRICE_PRECISION = 10 ** 30;
-    uint256 public constant MAX_BUFFER = 5 days;
-    uint256 public constant MAX_FEE_BASIS_POINTS = 300; // 3%
-    uint256 public constant MAX_FUNDING_RATE_FACTOR = 200; // 0.02%
-    uint256 public constant MAX_LEVERAGE_VALIDATION = 500000; // 50x
+    uint256 public constant PRICE_PRECISION = 10 ** 30; //价格精度
+    uint256 public constant MAX_BUFFER = 5 days; //缓冲
+    uint256 public constant MAX_FEE_BASIS_POINTS = 300; // 3% 手续费
+    uint256 public constant MAX_FUNDING_RATE_FACTOR = 200; // 0.02% 最大费率
+    uint256 public constant MAX_LEVERAGE_VALIDATION = 500000; // 50x 最大杠杆
 
-    uint256 public buffer;
-    address public admin;
+    uint256 public buffer;//缓冲时间
+    address public admin;//admin地址
 
-    address public tokenManager;
-    address public rewardManager;
-    address public mintReceiver;
-    uint256 public maxTokenSupply;
+    address public tokenManager;//token管理地址
+    address public rewardManager;//奖励管理地址
+    address public mintReceiver;//mint接收地址
+    uint256 public maxTokenSupply;//最大token供应
 
-    mapping (bytes32 => uint256) public pendingActions;
-    mapping (address => bool) public excludedTokens;
+    mapping (bytes32 => uint256) public pendingActions;//pending approve,mint... => 时间
+    mapping (address => bool) public excludedTokens;//不包括的token
 
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
@@ -97,37 +97,44 @@ contract Timelock is ITimelock {
         mintReceiver = _mintReceiver;
         maxTokenSupply = _maxTokenSupply;
     }
-
+    
+    //设置admin
     function setAdmin(address _admin) external override onlyTokenManager {
         admin = _admin;
     }
 
+    //某个合约设置admin
     function setExternalAdmin(address _target, address _admin) external onlyAdmin {
         require(_target != address(this), "Timelock: invalid _target");
         IAdmin(_target).setAdmin(_admin);
     }
 
+    //设置缓冲时间
     function setBuffer(uint256 _buffer) external onlyAdmin {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         require(_buffer > buffer, "Timelock: buffer cannot be decreased");
         buffer = _buffer;
     }
 
+    //admin向mintReceiver铸币
     function mint(address _token, uint256 _amount) external onlyAdmin {
         _mint(_token, mintReceiver, _amount);
     }
 
+    //admin设置valut杠杆总数
     function setMaxLeverage(address _vault, uint256 _maxLeverage) external onlyAdmin {
       require(_maxLeverage > MAX_LEVERAGE_VALIDATION, "Timelock: invalid _maxLeverage");
       IVault(_vault).setMaxLeverage(_maxLeverage);
     }
 
+    //admin设置资金费率
     function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external onlyAdmin {
         require(_fundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _fundingRateFactor");
         require(_stableFundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _stableFundingRateFactor");
         IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
     }
 
+    //管理员设置valut费率
     function setFees(
         address _vault,
         uint256 _taxBasisPoints,
@@ -161,6 +168,7 @@ contract Timelock is ITimelock {
         );
     }
 
+    //管理员设置token配置
     function setTokenConfig(
         address _vault,
         address _token,
@@ -188,22 +196,27 @@ contract Timelock is ITimelock {
         );
     }
 
+    //admin删除奖励token的admin
     function removeAdmin(address _token, address _account) external onlyAdmin {
         IYieldToken(_token).removeAdmin(_account);
     }
 
+    //admin设置缓冲amount
     function setBufferAmount(address _vault, address _token, uint256 _amount) external onlyAdmin {
         IVault(_vault).setBufferAmount(_token, _amount);
     }
 
+    //设置amm启用
     function setIsAmmEnabled(address _priceFeed, bool _isEnabled) external onlyAdmin {
         IVaultPriceFeed(_priceFeed).setIsAmmEnabled(_isEnabled);
     }
 
+    //设置第二价格是否启用
     function setIsSecondaryPriceEnabled(address _priceFeed, bool _isEnabled) external onlyAdmin {
         IVaultPriceFeed(_priceFeed).setIsSecondaryPriceEnabled(_isEnabled);
     }
 
+    //设置最大价格偏差
     function setMaxStrictPriceDeviation(address _priceFeed, uint256 _maxStrictPriceDeviation) external onlyAdmin {
         IVaultPriceFeed(_priceFeed).setMaxStrictPriceDeviation(_maxStrictPriceDeviation);
     }

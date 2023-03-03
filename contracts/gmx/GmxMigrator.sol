@@ -13,24 +13,24 @@ import "./interfaces/IGmxMigrator.sol";
 contract GmxMigrator is ReentrancyGuard, IGmxMigrator {
     using SafeMath for uint256;
 
-    bool public isInitialized;
-    bool public isMigrationActive = true;
-    bool public hasMaxMigrationLimit = false;
+    bool public isInitialized;//是否初始化
+    bool public isMigrationActive = true;//是否开始迁徙
+    bool public hasMaxMigrationLimit = false;//最大数量限制
 
-    uint256 public minAuthorizations;
+    uint256 public minAuthorizations;//多签最小数量
 
-    address public ammRouter;
-    uint256 public gmxPrice;
+    address public ammRouter;//router地址
+    uint256 public gmxPrice;//gmx价格
 
-    uint256 public actionsNonce;
-    address public admin;
+    uint256 public actionsNonce;//nonce值
+    address public admin;//admin
 
-    address[] public signers;
-    mapping (address => bool) public isSigner;
-    mapping (bytes32 => bool) public pendingActions;
-    mapping (address => mapping (bytes32 => bool)) public signedActions;
+    address[] public signers;//signer数组
+    mapping (address => bool) public isSigner;//是否是signer
+    mapping (bytes32 => bool) public pendingActions;//pending操作
+    mapping (address => mapping (bytes32 => bool)) public signedActions;//签名的操作
 
-    mapping (address => bool) public whitelistedTokens;
+    mapping (address => bool) public whitelistedTokens;//白名单tokens
     mapping (address => address) public override iouTokens;
     mapping (address => uint256) public prices;
     mapping (address => uint256) public caps;
