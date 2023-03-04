@@ -198,7 +198,7 @@ contract YieldToken is IERC20, IYieldToken {
         emit Transfer(_account, address(0), _amount);
     }
 
-    //转账,更新奖励,质押supply和非质押supply
+    //转账,更新奖励,质押supply和非质押supply都会触发更新奖励
     function _transfer(address _sender, address _recipient, uint256 _amount) private {
         require(_sender != address(0), "YieldToken: transfer from the zero address");
         require(_recipient != address(0), "YieldToken: transfer to the zero address");

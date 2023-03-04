@@ -8,7 +8,7 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "./YieldToken.sol";
 
-//产出质押
+//产出质押,转入stakingToken,转出yieldToken
 contract YieldFarm is YieldToken, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
