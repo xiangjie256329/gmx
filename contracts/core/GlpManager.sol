@@ -17,16 +17,16 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 public constant PRICE_PRECISION = 10 ** 30;
-    uint256 public constant USDG_DECIMALS = 18;
-    uint256 public constant MAX_COOLDOWN_DURATION = 48 hours;
+    uint256 public constant PRICE_PRECISION = 10 ** 30; //价格精度
+    uint256 public constant USDG_DECIMALS = 18; //usdg decimals
+    uint256 public constant MAX_COOLDOWN_DURATION = 48 hours; //冷确时间
 
-    IVault public vault;
-    address public usdg;
-    address public glp;
+    IVault public vault;//资金池
+    address public usdg;//usdg地址
+    address public glp;//glp地址
 
-    uint256 public override cooldownDuration;
-    mapping (address => uint256) public override lastAddedAt;
+    uint256 public override cooldownDuration;//准确时间
+    mapping (address => uint256) public override lastAddedAt;//最近一次添加时间
 
     uint256 public aumAddition;
     uint256 public aumDeduction;
