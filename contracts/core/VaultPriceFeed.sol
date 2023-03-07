@@ -13,17 +13,18 @@ pragma solidity 0.6.12;
 contract VaultPriceFeed is IVaultPriceFeed {
     using SafeMath for uint256;
 
-    uint256 public constant PRICE_PRECISION = 10 ** 30;
-    uint256 public constant ONE_USD = PRICE_PRECISION;
-    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
-    uint256 public constant MAX_SPREAD_BASIS_POINTS = 50;
-    uint256 public constant MAX_ADJUSTMENT_INTERVAL = 2 hours;
-    uint256 public constant MAX_ADJUSTMENT_BASIS_POINTS = 20;
+    uint256 public constant PRICE_PRECISION = 10 ** 30; // 价格精度
+    uint256 public constant ONE_USD = PRICE_PRECISION; // 一个usd
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000; //基点除数
+    uint256 public constant MAX_SPREAD_BASIS_POINTS = 50; //最大扩展基本点数,基本点数价差
+    uint256 public constant MAX_ADJUSTMENT_INTERVAL = 2 hours; //最大调整间隔
+    uint256 public constant MAX_ADJUSTMENT_BASIS_POINTS = 20; //最大调整基本点
 
     // Identifier of the Sequencer offline flag on the Flags contract
+    //ARBITRUM SEQ FLAG
     address constant private FLAG_ARBITRUM_SEQ_OFFLINE = address(bytes20(bytes32(uint256(keccak256("chainlink.flags.arbitrum-seq-offline")) - 1)));
 
-    address public gov;
+    address public gov; //gov地址
     address public chainlinkFlags;
 
     bool public isAmmEnabled = true;

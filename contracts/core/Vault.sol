@@ -79,7 +79,7 @@ contract Vault is ReentrancyGuard, IVault {
     mapping (address => bool) public override isLiquidator;
     mapping (address => bool) public override isManager;
 
-    address[] public override allWhitelistedTokens;
+    address[] public override allWhitelistedTokens;//白名单token集合
 
     mapping (address => bool) public override whitelistedTokens;
     mapping (address => uint256) public override tokenDecimals;
@@ -101,9 +101,11 @@ contract Vault is ReentrancyGuard, IVault {
 
     // poolAmounts tracks the number of received tokens that can be used for leverage
     // this is tracked separately from tokenBalances to exclude funds that are deposited as margin collateral
+    // token 与 杠杆已接收token的数量
     mapping (address => uint256) public override poolAmounts;
 
     // reservedAmounts tracks the number of tokens reserved for open leverage positions
+    // 未平仓杠杆仓位保留的代币数量
     mapping (address => uint256) public override reservedAmounts;
 
     // bufferAmounts allows specification of an amount to exclude from swaps
@@ -115,6 +117,7 @@ contract Vault is ReentrancyGuard, IVault {
     // this is an estimated amount, it is possible for the actual guaranteed value to be lower
     // in the case of sudden price decreases, the guaranteed value should be corrected
     // after liquidations are carried out
+    // 未平仓头寸的保证金
     mapping (address => uint256) public override guaranteedUsd;
 
     // cumulativeFundingRates tracks the funding rates based on utilization
@@ -128,7 +131,9 @@ contract Vault is ReentrancyGuard, IVault {
     // feeReserves tracks the amount of fees per token
     mapping (address => uint256) public override feeReserves;
 
+    //全局空头头寸
     mapping (address => uint256) public override globalShortSizes;
+    //全局空头头寸均价
     mapping (address => uint256) public override globalShortAveragePrices;
 
     mapping (uint256 => string) public errors;
