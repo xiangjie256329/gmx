@@ -25,14 +25,14 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     address public usdg;//usdg地址
     address public glp;//glp地址
 
-    uint256 public override cooldownDuration;//准确时间
+    uint256 public override cooldownDuration;//添加流动性后,需要等待一段时间才能移除流动性
     mapping (address => uint256) public override lastAddedAt;//最近一次添加时间
 
-    uint256 public aumAddition;
-    uint256 public aumDeduction;
+    uint256 public aumAddition;//增量
+    uint256 public aumDeduction;//减少量
 
-    bool public inPrivateMode;
-    mapping (address => bool) public isHandler;
+    bool public inPrivateMode;//私有模式,设置后将不允许添加/移除流动性
+    mapping (address => bool) public isHandler;//处理者名单,加入后将无法添加和移除流动性
 
     event AddLiquidity(
         address account,
@@ -62,39 +62,47 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         cooldownDuration = _cooldownDuration;
     }
 
+    //设置私有模式
     function setInPrivateMode(bool _inPrivateMode) external onlyGov {
         inPrivateMode = _inPrivateMode;
     }
 
+    //设置处理者
     function setHandler(address _handler, bool _isActive) external onlyGov {
         isHandler[_handler] = _isActive;
     }
 
+    //设置等待时间
     function setCooldownDuration(uint256 _cooldownDuration) external onlyGov {
         require(_cooldownDuration <= MAX_COOLDOWN_DURATION, "GlpManager: invalid _cooldownDuration");
         cooldownDuration = _cooldownDuration;
     }
 
+    //设置aum
     function setAumAdjustment(uint256 _aumAddition, uint256 _aumDeduction) external onlyGov {
         aumAddition = _aumAddition;
         aumDeduction = _aumDeduction;
     }
 
+    //添加流动性
     function addLiquidity(address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) external override nonReentrant returns (uint256) {
         if (inPrivateMode) { revert("GlpManager: action not enabled"); }
         return _addLiquidity(msg.sender, msg.sender, _token, _amount, _minUsdg, _minGlp);
     }
 
+    //给某个账户添加流动性
     function addLiquidityForAccount(address _fundingAccount, address _account, address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) external override nonReentrant returns (uint256) {
         _validateHandler();
         return _addLiquidity(_fundingAccount, _account, _token, _amount, _minUsdg, _minGlp);
     }
 
+    //移除流动性
     function removeLiquidity(address _tokenOut, uint256 _glpAmount, uint256 _minOut, address _receiver) external override nonReentrant returns (uint256) {
         if (inPrivateMode) { revert("GlpManager: action not enabled"); }
         return _removeLiquidity(msg.sender, _tokenOut, _glpAmount, _minOut, _receiver);
     }
 
+    //给某个账户移除流动性
     function removeLiquidityForAccount(address _account, address _tokenOut, uint256 _glpAmount, uint256 _minOut, address _receiver) external override nonReentrant returns (uint256) {
         _validateHandler();
         return _removeLiquidity(_account, _tokenOut, _glpAmount, _minOut, _receiver);
@@ -130,6 +138,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
             uint256 decimals = vault.tokenDecimals(token);
 
             if (vault.stableTokens(token)) {
+                //aum = aum+(poolAmount-price/(10**decimals))
                 aum = aum.add(poolAmount.mul(price).div(10 ** decimals));
             } else {
                 // add global short profit / loss
