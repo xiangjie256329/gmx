@@ -28,6 +28,7 @@ describe("FastPriceFeed", function () {
     btc = await deployContract("Token", [])
     eth = await deployContract("Token", [])
     fastPriceEvents = await deployContract("FastPriceEvents", [])
+    //5分钟,250的价格偏差
     fastPriceFeed = await deployContract("FastPriceFeed", [
       5 * 60, // _priceDuration
       250, // _maxDeviationBasisPoints
@@ -35,6 +36,7 @@ describe("FastPriceFeed", function () {
       admin.address, // admin
       tokenManager.address // _tokenManager
     ])
+    
     await fastPriceFeed.initialize(2, [signer0.address, signer1.address])
     await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
   })
@@ -176,8 +178,12 @@ describe("FastPriceFeed", function () {
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [801])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(801)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [900])
+    //console.log("price:",Number(await fastPriceFeed.getPrice(bnb.address, 800, true)))
+
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(820)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(800)
+
+    //expect(await fastPriceFeed.getPrice(bnb.address, 920, true)).eq(920)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [700])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(780)
@@ -189,9 +195,12 @@ describe("FastPriceFeed", function () {
 
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(820)
 
+    //超时直接返回
     await increaseTime(provider, 110)
     await mineBlock(provider)
+    console.log("1111")
 
+    console.log("num:",await fastPriceFeed.getPrice(bnb.address, 800, true))
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
 
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [810])
