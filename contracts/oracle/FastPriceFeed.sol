@@ -16,32 +16,32 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     // fit data in a uint256 slot to save gas costs
     struct PriceDataItem {
-        uint160 refPrice; // Chainlink price
-        uint32 refTime; // last updated at time
-        uint32 cumulativeRefDelta; // cumulative Chainlink price delta
-        uint32 cumulativeFastDelta; // cumulative fast price delta
+        uint160 refPrice; // Chainlink price    chainlink价格
+        uint32 refTime; // last updated at time 上一次更新时间
+        uint32 cumulativeRefDelta; // cumulative Chainlink price delta 计算chainlink价格变化
+        uint32 cumulativeFastDelta; // cumulative fast price delta 计算快速价格变化
     }
 
-    uint256 public constant PRICE_PRECISION = 10 ** 30;
+    uint256 public constant PRICE_PRECISION = 10 ** 30;//价格精度
 
-    uint256 public constant CUMULATIVE_DELTA_PRECISION = 10 * 1000 * 1000;
+    uint256 public constant CUMULATIVE_DELTA_PRECISION = 10 * 1000 * 1000;//delta精度
 
-    uint256 public constant MAX_REF_PRICE = type(uint160).max;
-    uint256 public constant MAX_CUMULATIVE_REF_DELTA = type(uint32).max;
-    uint256 public constant MAX_CUMULATIVE_FAST_DELTA = type(uint32).max;
+    uint256 public constant MAX_REF_PRICE = type(uint160).max; //最大ref价格
+    uint256 public constant MAX_CUMULATIVE_REF_DELTA = type(uint32).max; //最大chainlink变化价格
+    uint256 public constant MAX_CUMULATIVE_FAST_DELTA = type(uint32).max; //最大fast变化价格
 
-    // uint256(~0) is 256 bits of 1s
+    // uint256(~0) is 256 bits of 1s 32个1
     // shift the 1s by (256 - 32) to get (256 - 32) 0s followed by 32 1s
     uint256 constant public BITMASK_32 = uint256(~0) >> (256 - 32);
 
-    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000; //基点除数
 
-    uint256 public constant MAX_PRICE_DURATION = 30 minutes;
+    uint256 public constant MAX_PRICE_DURATION = 30 minutes; //最大时间间隔
 
-    bool public isInitialized;
-    bool public isSpreadEnabled = false;
+    bool public isInitialized; //是否初始化
+    bool public isSpreadEnabled = false; //启用扩散
 
-    address public vaultPriceFeed;
+    address public vaultPriceFeed; //
     address public fastPriceEvents;
 
     address public tokenManager;

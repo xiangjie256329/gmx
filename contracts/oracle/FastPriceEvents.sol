@@ -9,9 +9,10 @@ pragma solidity 0.6.12;
 
 contract FastPriceEvents is IFastPriceEvents, Governable {
 
-    mapping (address => bool) public isPriceFeed;
+    mapping (address => bool) public isPriceFeed;//是否可喂价
     event PriceUpdate(address token, uint256 price, address priceFeed);
 
+    //gov设置喂价地址
     function setIsPriceFeed(address _priceFeed, bool _isPriceFeed) external onlyGov {
       isPriceFeed[_priceFeed] = _isPriceFeed;
     }
