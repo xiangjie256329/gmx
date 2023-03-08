@@ -60,10 +60,10 @@ describe("FastPriceFeed", function () {
 
     fastPriceEvents = await deployContract("FastPriceEvents", [])
     fastPriceFeed = await deployContract("FastPriceFeed", [
-      5 * 60, // _priceDuration
-      120 * 60, // _maxPriceUpdateDelay
-      2, // _minBlockInterval
-      250, // _maxDeviationBasisPoints
+      5 * 60, // _priceDuration //价格变化5分钟内
+      120 * 60, // _maxPriceUpdateDelay 最大延迟120分钟
+      2, // _minBlockInterval //最小区块间隔2
+      250, // _maxDeviationBasisPoints //偏差计算
       fastPriceEvents.address, // _fastPriceEvents
       tokenManager.address, // _tokenManager
       positionRouter.address // _positionRouter

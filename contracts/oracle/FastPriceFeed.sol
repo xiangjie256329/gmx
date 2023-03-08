@@ -53,8 +53,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     uint256 public priceDuration; //喂价时间间隔
     uint256 public maxPriceUpdateDelay; //最大时间延迟
-    uint256 public spreadBasisPointsIfInactive; //启用点差
-    uint256 public spreadBasisPointsIfChainError;//链错误点差
+    uint256 public spreadBasisPointsIfInactive; //超过priceDuration的修正
+    uint256 public spreadBasisPointsIfChainError;//超过maxPriceUpdateDelay的修正
     uint256 public minBlockInterval; //最小区块间隔
     uint256 public maxTimeDeviation; //最大时间偏离
 
@@ -174,7 +174,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxPriceUpdateDelay = _maxPriceUpdateDelay;
     }
 
-    //设置点差
+    //设置一次价格间隔导致的点差
     function setSpreadBasisPointsIfInactive(uint256 _spreadBasisPointsIfInactive) external override onlyGov {
         spreadBasisPointsIfInactive = _spreadBasisPointsIfInactive;
     }
@@ -299,8 +299,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         //更新前8个token的价格
         _setPricesWithBits(_priceBits, _timestamp);
 
+        //更新increasePositionRequestKeysStart和decreasePositionRequestKeysStart
         IPositionRouter _positionRouter = IPositionRouter(positionRouter);
-        //XJTODO
         uint256 maxEndIndexForIncrease = _positionRouter.increasePositionRequestKeysStart().add(_maxIncreasePositions);
         uint256 maxEndIndexForDecrease = _positionRouter.increasePositionRequestKeysStart().add(_maxDecreasePositions);
 
@@ -325,6 +325,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         emit DisableFastPrice(msg.sender);
     }
 
+    //启用fastPrice
     function enableFastPrice() external onlySigner {
         require(disableFastPriceVotes[msg.sender], "FastPriceFeed: already enabled");
         disableFastPriceVotes[msg.sender] = false;
@@ -335,41 +336,51 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     // under regular operation, the fastPrice (prices[token]) is returned and there is no spread returned from this function,
     // though VaultPriceFeed might apply its own spread
-    // 在常规操作下，返回fastPrice（prices[token]）并且没有从该函数返回的价差，尽管VaultPriceFeed可能会应用自己的价差
+    // 
     // if the fastPrice has not been updated within priceDuration then it is ignored and only _refPrice with a spread is used (spread: spreadBasisPointsIfInactive)
     // in case the fastPrice has not been updated for maxPriceUpdateDelay then the _refPrice with a larger spread is used (spread: spreadBasisPointsIfChainError)
-    // 如果fastPrice未在priceDuration内更新，则忽略该值，仅使用带有点差的_refPrice（点差：spreadBasisPointsIfInactive）
-    // 如果没有为maxPriceUpdateDelay更新fastPrice，则使用具有较大排列的_refPrice（排列：spreadBasisPointsIfChainError）
     // there will be a spread from the _refPrice to the fastPrice in the following cases:
     // - in case isSpreadEnabled is set to true
     // - in case the maxDeviationBasisPoints between _refPrice and fastPrice is exceeded
     // - in case watchers flag an issue
     // - in case the cumulativeFastDelta exceeds the cumulativeRefDelta by the maxCumulativeDeltaDiff
+    // 在常规操作下，返回fastPrice（prices[token]）并且没有从该函数返回的价差，尽管VaultPriceFeed可能会应用自己的价差
+    // 如果fastPrice未在priceDuration内更新，则忽略该值，仅使用带有点差的_refPrice（点差：spreadBasisPointsIfInactive）
+    // 如果没有为maxPriceUpdateDelay更新fastPrice，则使用具有较大排列的_refPrice（排列：spreadBasisPointsIfChainError）
     // 在以下情况下，将存在从_refPrice到fastPrice的差价：
     // 如果isSpreadEnabled设置为true
     // 如果超过_refPrice和fastPrice之间的maxDeviationBasisPoints
     // 如果观察者标记问题
     // 如果累积FastDelta超过累积RefDelta的最大累积DeltaDiff
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
+        // 超时,超过最大时间延迟.区块时间 > 最近更新+最大时间延迟
         if (block.timestamp > lastUpdatedAt.add(maxPriceUpdateDelay)) {
+            //取较大值
             if (_maximise) {
+                //返回 _refPrice * (1+spreadBasisPointsIfChainError)
                 return _refPrice.mul(BASIS_POINTS_DIVISOR.add(spreadBasisPointsIfChainError)).div(BASIS_POINTS_DIVISOR);
             }
 
+            //取较小值 返回 _refPrice * (1-spreadBasisPointsIfChainError)
             return _refPrice.mul(BASIS_POINTS_DIVISOR.sub(spreadBasisPointsIfChainError)).div(BASIS_POINTS_DIVISOR);
         }
 
+        // 超时,超过一次喂价间隔.区块时间 > 最近更新 + 喂价时间间隔
         if (block.timestamp > lastUpdatedAt.add(priceDuration)) {
             if (_maximise) {
+                //返回 _refPrice * (1+spreadBasisPointsIfInactive)
                 return _refPrice.mul(BASIS_POINTS_DIVISOR.add(spreadBasisPointsIfInactive)).div(BASIS_POINTS_DIVISOR);
             }
 
+            //返回 _refPrice * (1-spreadBasisPointsIfInactive)
             return _refPrice.mul(BASIS_POINTS_DIVISOR.sub(spreadBasisPointsIfInactive)).div(BASIS_POINTS_DIVISOR);
         }
 
         uint256 fastPrice = prices[_token];
+        // 如果token的fastPrice为0,则返回_refPrice
         if (fastPrice == 0) { return _refPrice; }
 
+        //diffBasisPoints = abs(_refPrice-fastPrice)/_refPrice
         uint256 diffBasisPoints = _refPrice > fastPrice ? _refPrice.sub(fastPrice) : fastPrice.sub(_refPrice);
         diffBasisPoints = diffBasisPoints.mul(BASIS_POINTS_DIVISOR).div(_refPrice);
 
@@ -377,19 +388,23 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         // or if watchers have flagged an issue with the fast price
         bool hasSpread = !favorFastPrice(_token) || diffBasisPoints > maxDeviationBasisPoints;
 
+        //有点差
         if (hasSpread) {
             // return the higher of the two prices
+            // max(_refPrice,fastPrice)
             if (_maximise) {
                 return _refPrice > fastPrice ? _refPrice : fastPrice;
             }
 
             // return the lower of the two prices
+            // min(_refPrice,fastPrice)
             return _refPrice < fastPrice ? _refPrice : fastPrice;
         }
 
         return fastPrice;
     }
 
+    //是否赞成某个token的fastPrice
     function favorFastPrice(address _token) public view returns (bool) {
         if (isSpreadEnabled) {
             return false;
@@ -401,6 +416,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         }
 
         (/* uint256 prevRefPrice */, /* uint256 refTime */, uint256 cumulativeRefDelta, uint256 cumulativeFastDelta) = getPriceData(_token);
+        //当fastDelta>linkDelta ,且偏差超过最大diff,则拒绝fastPrice
         if (cumulativeFastDelta > cumulativeRefDelta && cumulativeFastDelta.sub(cumulativeRefDelta) > maxCumulativeDeltaDiffs[_token]) {
             // force a spread if the cumulative delta for the fast price feed exceeds the cumulative delta
             // for the Chainlink price feed by the maxCumulativeDeltaDiff allowed
