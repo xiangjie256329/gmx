@@ -17,100 +17,101 @@ contract Vault is ReentrancyGuard, IVault {
     using SafeERC20 for IERC20;
 
     struct Position {
-        uint256 size;
-        uint256 collateral;
-        uint256 averagePrice;
-        uint256 entryFundingRate;
-        uint256 reserveAmount;
-        int256 realisedPnl;
-        uint256 lastIncreasedTime;
+        uint256 size; //头寸
+        uint256 collateral; //抵押品
+        uint256 averagePrice;  //均价
+        uint256 entryFundingRate; //入场资金利率
+        uint256 reserveAmount; //保留金额
+        int256 realisedPnl; //已实现收益
+        uint256 lastIncreasedTime; //最新增加时间
     }
 
-    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
-    uint256 public constant FUNDING_RATE_PRECISION = 1000000;
-    uint256 public constant PRICE_PRECISION = 10 ** 30;
-    uint256 public constant MIN_LEVERAGE = 10000; // 1x
-    uint256 public constant USDG_DECIMALS = 18;
-    uint256 public constant MAX_FEE_BASIS_POINTS = 500; // 5%
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000; //除法精度
+    uint256 public constant FUNDING_RATE_PRECISION = 1000000; //融资率
+    uint256 public constant PRICE_PRECISION = 10 ** 30; //价格精度
+    uint256 public constant MIN_LEVERAGE = 10000; // 1x  //最小平均值
+    uint256 public constant USDG_DECIMALS = 18; // usdg decimals
+    uint256 public constant MAX_FEE_BASIS_POINTS = 500; // 5% 最大费率
     uint256 public constant MAX_LIQUIDATION_FEE_USD = 100 * PRICE_PRECISION; // 100 USD
-    uint256 public constant MIN_FUNDING_RATE_INTERVAL = 1 hours;
-    uint256 public constant MAX_FUNDING_RATE_FACTOR = 10000; // 1%
+    uint256 public constant MIN_FUNDING_RATE_INTERVAL = 1 hours; //最小投资时间间隔
+    uint256 public constant MAX_FUNDING_RATE_FACTOR = 10000; // 1% 最大投资比例
 
-    bool public override isInitialized;
-    bool public override isSwapEnabled = true;
-    bool public override isLeverageEnabled = true;
+    bool public override isInitialized; //是否初始化
+    bool public override isSwapEnabled = true; //是否初始化,True
+    bool public override isLeverageEnabled = true;//是否启用杠杆,XJCH_False
 
     IVaultUtils public vaultUtils;
 
-    address public errorController;
+    address public errorController;//XJCH,需要设置VaultErrorController的地址
 
-    address public override router;
-    address public override priceFeed;
+    address public override router;//router地址
+    address public override priceFeed;//link喂价地址
 
-    address public override usdg;
-    address public override gov;
+    address public override usdg;//usdg
+    address public override gov;//gov地址
 
-    uint256 public override whitelistedTokenCount;
+    uint256 public override whitelistedTokenCount; //白名单token数量
 
-    uint256 public override maxLeverage = 50 * 10000; // 50x
+    uint256 public override maxLeverage = 50 * 10000; // 50x 最大杠杆倍数,XJCH_100
 
-    uint256 public override liquidationFeeUsd;
-    uint256 public override taxBasisPoints = 50; // 0.5%
-    uint256 public override stableTaxBasisPoints = 20; // 0.2%
-    uint256 public override mintBurnFeeBasisPoints = 30; // 0.3%
-    uint256 public override swapFeeBasisPoints = 30; // 0.3%
-    uint256 public override stableSwapFeeBasisPoints = 4; // 0.04%
-    uint256 public override marginFeeBasisPoints = 10; // 0.1%
+    uint256 public override liquidationFeeUsd; //usd流动性费 5000000000000000000000000000000 5
+    uint256 public override taxBasisPoints = 50; // 0.5% 税基点
+    uint256 public override stableTaxBasisPoints = 20; // 0.2% 稳定币税基点 XJCH_5
+    uint256 public override mintBurnFeeBasisPoints = 30; // 0.3% mint销毁费基点 XJCH_25
+    uint256 public override swapFeeBasisPoints = 30; // 0.3% swap费基点
+    uint256 public override stableSwapFeeBasisPoints = 4; // 0.04% 稳定币基点 XJCH_1
+    uint256 public override marginFeeBasisPoints = 10; // 0.1% 保证金基点
 
-    uint256 public override minProfitTime;
-    bool public override hasDynamicFees = false;
+    uint256 public override minProfitTime; //最小赢利时间
+    bool public override hasDynamicFees = false; //有动态费
 
-    uint256 public override fundingInterval = 8 hours;
-    uint256 public override fundingRateFactor;
-    uint256 public override stableFundingRateFactor;
-    uint256 public override totalTokenWeights;
+    uint256 public override fundingInterval = 8 hours; //投资时间间隔
+    uint256 public override fundingRateFactor; //资金费率
+    uint256 public override stableFundingRateFactor; //稳定币资金费率
+    uint256 public override totalTokenWeights; //总token权重
 
-    bool public includeAmmPrice = true;
-    bool public useSwapPricing = false;
+    bool public includeAmmPrice = true; //是否包含amm价格
+    bool public useSwapPricing = false; //是否使用swap的价格
 
-    bool public override inManagerMode = false;
-    bool public override inPrivateLiquidationMode = false;
+    bool public override inManagerMode = false; //manager模式
+    bool public override inPrivateLiquidationMode = false; //私有流动性模式
 
-    uint256 public override maxGasPrice;
+    uint256 public override maxGasPrice; //最大gas价格
 
-    mapping (address => mapping (address => bool)) public override approvedRouters;
-    mapping (address => bool) public override isLiquidator;
-    mapping (address => bool) public override isManager;
+    mapping (address => mapping (address => bool)) public override approvedRouters; //router集合
+    mapping (address => bool) public override isLiquidator; //提供流动性集合
+    mapping (address => bool) public override isManager; //manager集合
 
-    address[] public override allWhitelistedTokens;
+    address[] public override allWhitelistedTokens; //白名单token集合
 
-    mapping (address => bool) public override whitelistedTokens;
-    mapping (address => uint256) public override tokenDecimals;
-    mapping (address => uint256) public override minProfitBasisPoints;
-    mapping (address => bool) public override stableTokens;
-    mapping (address => bool) public override shortableTokens;
+    mapping (address => bool) public override whitelistedTokens; //加过白名单集合
+    mapping (address => uint256) public override tokenDecimals; //token decimal集合
+    mapping (address => uint256) public override minProfitBasisPoints; //最小资金费率
+    mapping (address => bool) public override stableTokens; //是否是稳定币
+    mapping (address => bool) public override shortableTokens; //短期代币
 
     // tokenBalances is used only to determine _transferIn values
-    mapping (address => uint256) public override tokenBalances;
+    mapping (address => uint256) public override tokenBalances; //token金额
 
     // tokenWeights allows customisation of index composition
-    mapping (address => uint256) public override tokenWeights;
+    mapping (address => uint256) public override tokenWeights; //token权重
 
     // usdgAmounts tracks the amount of USDG debt for each whitelisted token
-    mapping (address => uint256) public override usdgAmounts;
+    mapping (address => uint256) public override usdgAmounts;  //各个token的usdg金额
 
     // maxUsdgAmounts allows setting a max amount of USDG debt for a token
-    mapping (address => uint256) public override maxUsdgAmounts;
+    mapping (address => uint256) public override maxUsdgAmounts; //token最大usdg的金额
 
     // poolAmounts tracks the number of received tokens that can be used for leverage
     // this is tracked separately from tokenBalances to exclude funds that are deposited as margin collateral
-    mapping (address => uint256) public override poolAmounts;
+    mapping (address => uint256) public override poolAmounts; //池子金额
 
     // reservedAmounts tracks the number of tokens reserved for open leverage positions
-    mapping (address => uint256) public override reservedAmounts;
+    mapping (address => uint256) public override reservedAmounts; //未平仓杠杆仓位保留的代币数量
 
     // bufferAmounts allows specification of an amount to exclude from swaps
     // this can be used to ensure a certain amount of liquidity is available for leverage positions
+    // 缓冲金额,可用于确保杠杆头寸有一定数量的流动性
     mapping (address => uint256) public override bufferAmounts;
 
     // guaranteedUsd tracks the amount of USD that is "guaranteed" by opened leverage positions
@@ -118,24 +119,25 @@ contract Vault is ReentrancyGuard, IVault {
     // this is an estimated amount, it is possible for the actual guaranteed value to be lower
     // in the case of sudden price decreases, the guaranteed value should be corrected
     // after liquidations are carried out
+    // 未平仓杠杆头寸“担保”usd金额
     mapping (address => uint256) public override guaranteedUsd;
 
     // cumulativeFundingRates tracks the funding rates based on utilization
-    mapping (address => uint256) public override cumulativeFundingRates;
+    mapping (address => uint256) public override cumulativeFundingRates; //累积融资率
     // lastFundingTimes tracks the last time funding was updated for a token
-    mapping (address => uint256) public override lastFundingTimes;
+    mapping (address => uint256) public override lastFundingTimes; //最后融资时间
 
     // positions tracks all open positions
-    mapping (bytes32 => Position) public positions;
+    mapping (bytes32 => Position) public positions; //交易
 
     // feeReserves tracks the amount of fees per token
-    mapping (address => uint256) public override feeReserves;
+    mapping (address => uint256) public override feeReserves; //每个代币的剩余fee
 
-    mapping (address => uint256) public override globalShortSizes;
-    mapping (address => uint256) public override globalShortAveragePrices;
-    mapping (address => uint256) public override maxGlobalShortSizes;
+    mapping (address => uint256) public override globalShortSizes; //全局空头头寸
+    mapping (address => uint256) public override globalShortAveragePrices; //全局空头均价
+    mapping (address => uint256) public override maxGlobalShortSizes; //最高全局空头头寸
 
-    mapping (uint256 => string) public errors;
+    mapping (uint256 => string) public errors;//errors
 
     event BuyUSDG(address account, address token, uint256 tokenAmount, uint256 usdgAmount, uint256 feeBasisPoints);
     event SellUSDG(address account, address token, uint256 usdgAmount, uint256 tokenAmount, uint256 feeBasisPoints);

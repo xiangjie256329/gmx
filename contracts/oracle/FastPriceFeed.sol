@@ -51,10 +51,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public override lastUpdatedAt; //喂价最近更新时间
     uint256 public override lastUpdatedBlock; //最近更新的区块号
 
-    uint256 public priceDuration; //喂价时间间隔
-    uint256 public maxPriceUpdateDelay; //最大时间延迟
-    uint256 public spreadBasisPointsIfInactive; //超过priceDuration的修正
-    uint256 public spreadBasisPointsIfChainError;//超过maxPriceUpdateDelay的修正
+    uint256 public priceDuration; //喂价时间间隔 300
+    uint256 public maxPriceUpdateDelay; //最大时间延迟 3600
+    uint256 public spreadBasisPointsIfInactive; //超过priceDuration的修正 20
+    uint256 public spreadBasisPointsIfChainError;//超过maxPriceUpdateDelay的修正 500
     uint256 public minBlockInterval; //最小区块间隔
     uint256 public maxTimeDeviation; //最大时间偏离
 
@@ -70,7 +70,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     mapping (address => uint256) public prices; //token => 价格
     mapping (address => PriceDataItem) public priceData; //价格数据
-    mapping (address => uint256) public maxCumulativeDeltaDiffs; //token => 最大计算价差
+    mapping (address => uint256) public maxCumulativeDeltaDiffs; //token => 最大计算价差,btc:1000000
 
     mapping (address => bool) public isSigner; //是否有签名权限
     mapping (address => bool) public disableFastPriceVotes; //signer => 是否禁用fast价格投票
