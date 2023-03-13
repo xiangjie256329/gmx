@@ -11,14 +11,14 @@ import "./BasePositionManager.sol";
 
 contract PositionManager is BasePositionManager {
 
-    address public orderBook;
-    bool public inLegacyMode;
+    address public orderBook; //orderBook
+    bool public inLegacyMode; //传统模式
 
-    bool public shouldValidateIncreaseOrder = true;
+    bool public shouldValidateIncreaseOrder = true; //验证开仓
 
-    mapping (address => bool) public isOrderKeeper;
-    mapping (address => bool) public isPartner;
-    mapping (address => bool) public isLiquidator;
+    mapping (address => bool) public isOrderKeeper; //是否是orderkeeper
+    mapping (address => bool) public isPartner; //是否是partner
+    mapping (address => bool) public isLiquidator; //是否是清算者账户
 
     event SetOrderKeeper(address indexed account, bool isActive);
     event SetLiquidator(address indexed account, bool isActive);
@@ -52,31 +52,37 @@ contract PositionManager is BasePositionManager {
         orderBook = _orderBook;
     }
 
+    //设置orderKeeper
     function setOrderKeeper(address _account, bool _isActive) external onlyAdmin {
         isOrderKeeper[_account] = _isActive;
         emit SetOrderKeeper(_account, _isActive);
     }
 
+    //设置清算账户
     function setLiquidator(address _account, bool _isActive) external onlyAdmin {
         isLiquidator[_account] = _isActive;
         emit SetLiquidator(_account, _isActive);
     }
 
+    //设置合伙人账户
     function setPartner(address _account, bool _isActive) external onlyAdmin {
         isPartner[_account] = _isActive;
         emit SetPartner(_account, _isActive);
     }
 
+    //设置传统模式
     function setInLegacyMode(bool _inLegacyMode) external onlyAdmin {
         inLegacyMode = _inLegacyMode;
         emit SetInLegacyMode(_inLegacyMode);
     }
 
+    //设置是否验证开仓
     function setShouldValidateIncreaseOrder(bool _shouldValidateIncreaseOrder) external onlyAdmin {
         shouldValidateIncreaseOrder = _shouldValidateIncreaseOrder;
         emit SetShouldValidateIncreaseOrder(_shouldValidateIncreaseOrder);
     }
 
+    //只允许partners或者传统模式
     function increasePosition(
         address[] memory _path,
         address _indexToken,
@@ -88,8 +94,10 @@ contract PositionManager is BasePositionManager {
     ) external nonReentrant onlyPartnersOrLegacyMode {
         require(_path.length == 1 || _path.length == 2, "PositionManager: invalid _path.length");
 
+        //用_amountIn去开
         if (_amountIn > 0) {
             if (_path.length == 1) {
+                //把钱转到当前合约
                 IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
             } else {
                 IRouter(router).pluginTransfer(_path[0], msg.sender, vault, _amountIn);
@@ -97,12 +105,15 @@ contract PositionManager is BasePositionManager {
             }
 
             uint256 afterFeeAmount = _collectFees(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
+            //费用从当前转到vault
             IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
         }
 
+        //开出minOut
         _increasePosition(msg.sender, _path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
     }
 
+    //eth开仓
     function increasePositionETH(
         address[] memory _path,
         address _indexToken,
@@ -130,6 +141,7 @@ contract PositionManager is BasePositionManager {
         _increasePosition(msg.sender, _path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
     }
 
+    //平仓
     function decreasePosition(
         address _collateralToken,
         address _indexToken,
@@ -142,6 +154,7 @@ contract PositionManager is BasePositionManager {
         _decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver, _price);
     }
 
+    //eth平仓
     function decreasePositionETH(
         address _collateralToken,
         address _indexToken,
@@ -157,6 +170,7 @@ contract PositionManager is BasePositionManager {
         _transferOutETHWithGasLimitIgnoreFail(amountOut, _receiver);
     }
 
+    //平仓并且swap出别的token
     function decreasePositionAndSwap(
         address[] memory _path,
         address _indexToken,
@@ -174,6 +188,7 @@ contract PositionManager is BasePositionManager {
         _swap(_path, _minOut, _receiver);
     }
 
+    //平仓并换出eth
     function decreasePositionAndSwapETH(
         address[] memory _path,
         address _indexToken,
@@ -193,6 +208,7 @@ contract PositionManager is BasePositionManager {
         _transferOutETHWithGasLimitIgnoreFail(amountOut, _receiver);
     }
 
+    //清算
     function liquidatePosition(
         address _account,
         address _collateralToken,
@@ -204,8 +220,10 @@ contract PositionManager is BasePositionManager {
         address timelock = IVault(_vault).gov();
         (uint256 size, , , , , , , ) = IVault(vault).getPosition(_account, _collateralToken, _indexToken, _isLong);
 
+        //获取喂价
         uint256 markPrice = _isLong ? IVault(_vault).getMinPrice(_indexToken) : IVault(_vault).getMaxPrice(_indexToken);
         // should be called strictly before position is updated in Vault
+        //更新空头头寸
         IShortsTracker(shortsTracker).updateGlobalShortData(_account, _collateralToken, _indexToken, _isLong, size, markPrice, false);
 
         ITimelock(timelock).enableLeverage(_vault);
@@ -213,16 +231,19 @@ contract PositionManager is BasePositionManager {
         ITimelock(timelock).disableLeverage(_vault);
     }
 
+    //XJTODO
     function executeSwapOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
         IOrderBook(orderBook).executeSwapOrder(_account, _orderIndex, _feeReceiver);
     }
 
+    //执行开仓
     function executeIncreaseOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
         _validateIncreaseOrder(_account, _orderIndex);
 
         address _vault = vault;
         address timelock = IVault(_vault).gov();
 
+        //获取order
         (
             /*address purchaseToken*/,
             /*uint256 purchaseTokenAmount*/,
@@ -235,10 +256,13 @@ contract PositionManager is BasePositionManager {
             /*uint256 executionFee*/
         ) = IOrderBook(orderBook).getIncreaseOrder(_account, _orderIndex);
 
+        //获取价格
         uint256 markPrice = isLong ? IVault(_vault).getMaxPrice(indexToken) : IVault(_vault).getMinPrice(indexToken);
         // should be called strictly before position is updated in Vault
+        //更新全局头寸
         IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, true);
 
+        //执行开仓
         ITimelock(timelock).enableLeverage(_vault);
         IOrderBook(orderBook).executeIncreaseOrder(_account, _orderIndex, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
@@ -246,6 +270,7 @@ contract PositionManager is BasePositionManager {
         _emitIncreasePositionReferral(_account, sizeDelta);
     }
 
+    //执行平仓
     function executeDecreaseOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
         address _vault = vault;
         address timelock = IVault(_vault).gov();
@@ -272,6 +297,7 @@ contract PositionManager is BasePositionManager {
         _emitDecreasePositionReferral(_account, sizeDelta);
     }
 
+    //验证开仓
     function _validateIncreaseOrder(address _account, uint256 _orderIndex) internal view {
         (
             address _purchaseToken,
@@ -284,9 +310,10 @@ contract PositionManager is BasePositionManager {
             , // triggerAboveThreshold
             // executionFee
         ) = IOrderBook(orderBook).getIncreaseOrder(_account, _orderIndex);
-
+        //验证最大头寸
         _validateMaxGlobalSize(_indexToken, _isLong, _sizeDelta);
 
+        //是否验证开仓
         if (!shouldValidateIncreaseOrder) { return; }
 
         // shorts are okay
@@ -296,17 +323,23 @@ contract PositionManager is BasePositionManager {
         require(_sizeDelta > 0, "PositionManager: long deposit");
 
         IVault _vault = IVault(vault);
+        //获取position
         (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, _collateralToken, _indexToken, _isLong);
 
         // if there is no existing position, do not charge a fee
         if (size == 0) { return; }
 
+        //更新下一次的头寸
         uint256 nextSize = size.add(_sizeDelta);
+        //增加的抵押token
         uint256 collateralDelta = _vault.tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
+        //下一次的抵押
         uint256 nextCollateral = collateral.add(collateralDelta);
 
+        //前一次的杠杆
         uint256 prevLeverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
         // allow for a maximum of a increasePositionBufferBps decrease since there might be some swap fees taken from the collateral
+        //计算接下来的杠杆
         uint256 nextLeverageWithBuffer = nextSize.mul(BASIS_POINTS_DIVISOR + increasePositionBufferBps).div(nextCollateral);
 
         require(nextLeverageWithBuffer >= prevLeverage, "PositionManager: long leverage decrease");

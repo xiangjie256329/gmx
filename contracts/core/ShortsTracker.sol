@@ -8,21 +8,23 @@ import "../access/Governable.sol";
 import "./interfaces/IShortsTracker.sol";
 import "./interfaces/IVault.sol";
 
+//做空跟踪
 contract ShortsTracker is Governable, IShortsTracker {
     using SafeMath for uint256;
 
     event GlobalShortDataUpdated(address indexed token, uint256 globalShortSize, uint256 globalShortAveragePrice);
 
-    uint256 public constant MAX_INT256 = uint256(type(int256).max);
+    uint256 public constant MAX_INT256 = uint256(type(int256).max); //max
 
-    IVault public vault;
+    IVault public vault; //资金池
 
-    mapping (address => bool) public isHandler;
-    mapping (bytes32 => bytes32) public data;
+    mapping (address => bool) public isHandler; //管理员
+    mapping (bytes32 => bytes32) public data; //数据
 
-    mapping (address => uint256) override public globalShortAveragePrices;
-    bool override public isGlobalShortDataReady;
+    mapping (address => uint256) override public globalShortAveragePrices; //全局做空均价
+    bool override public isGlobalShortDataReady; //全局做空准备
 
+    //只允许管理员
     modifier onlyHandler() {
         require(isHandler[msg.sender], "ShortsTracker: forbidden");
         _;
@@ -32,19 +34,23 @@ contract ShortsTracker is Governable, IShortsTracker {
         vault = IVault(_vault);
     }
 
+    //gov设置管理员
     function setHandler(address _handler, bool _isActive) external onlyGov {
         require(_handler != address(0), "ShortsTracker: invalid _handler");
         isHandler[_handler] = _isActive;
     }
 
+    //设置全局空头均价
     function _setGlobalShortAveragePrice(address _token, uint256 _averagePrice) internal {
         globalShortAveragePrices[_token] = _averagePrice;
     }
 
+    //是否准备全局空头均价
     function setIsGlobalShortDataReady(bool value) override external onlyGov {
         isGlobalShortDataReady = value;
     }
 
+    //更新全局空头数据
     function updateGlobalShortData(
         address _account,
         address _collateralToken,
@@ -70,25 +76,32 @@ contract ShortsTracker is Governable, IShortsTracker {
             _sizeDelta,
             _isIncrease
         );
+        //设置全局空头均价
         _setGlobalShortAveragePrice(_indexToken, globalShortAveragePrice);
 
         emit GlobalShortDataUpdated(_indexToken, globalShortSize, globalShortAveragePrice);
     }
 
+    //获取全局空头头寸变化
     function getGlobalShortDelta(address _token) public view returns (bool, uint256) {
+        //空头头寸
         uint256 size = vault.globalShortSizes(_token);
+        //均价
         uint256 averagePrice = globalShortAveragePrices[_token];
         if (size == 0) { return (false, 0); }
 
+        //当前较高价
         uint256 nextPrice = IVault(vault).getMaxPrice(_token);
+        //价差
         uint256 priceDelta = averagePrice > nextPrice ? averagePrice.sub(nextPrice) : nextPrice.sub(averagePrice);
+        //头寸*价差
         uint256 delta = size.mul(priceDelta).div(averagePrice);
         bool hasProfit = averagePrice > nextPrice;
 
         return (hasProfit, delta);
     }
 
-
+    //gov设置初始化价格
     function setInitData(address[] calldata _tokens, uint256[] calldata _averagePrices) override external onlyGov {
         require(!isGlobalShortDataReady, "ShortsTracker: already migrated");
 
@@ -98,6 +111,7 @@ contract ShortsTracker is Governable, IShortsTracker {
         isGlobalShortDataReady = true;
     }
 
+    //获取下一个空头头寸数据
     function getNextGlobalShortData(
         address _account,
         address _collateralToken,
@@ -106,15 +120,20 @@ contract ShortsTracker is Governable, IShortsTracker {
         uint256 _sizeDelta,
         bool _isIncrease
     ) override public view returns (uint256, uint256) {
+        //获取pnl
         int256 realisedPnl = getRealisedPnl(_account,_collateralToken, _indexToken, _sizeDelta, _isIncrease);
+        //空头均价
         uint256 averagePrice = globalShortAveragePrices[_indexToken];
+        //当前价格与上一次全局均价差
         uint256 priceDelta = averagePrice > _nextPrice ? averagePrice.sub(_nextPrice) : _nextPrice.sub(averagePrice);
 
         uint256 nextSize;
         uint256 delta;
         // avoid stack to deep
         {
+            //全局空头头寸
             uint256 size = vault.globalShortSizes(_indexToken);
+            //增加或减少头寸
             nextSize = _isIncrease ? size.add(_sizeDelta) : size.sub(_sizeDelta);
 
             if (nextSize == 0) {
@@ -125,9 +144,11 @@ contract ShortsTracker is Governable, IShortsTracker {
                 return (nextSize, _nextPrice);
             }
 
+            //因价差导致变化的头寸
             delta = size.mul(priceDelta).div(averagePrice);
         }
 
+        //获取
         uint256 nextAveragePrice = _getNextGlobalAveragePrice(
             averagePrice,
             _nextPrice,
@@ -139,6 +160,7 @@ contract ShortsTracker is Governable, IShortsTracker {
         return (nextSize, nextAveragePrice);
     }
 
+    //获取账户真实pnl
     function getRealisedPnl(
         address _account,
         address _collateralToken,
@@ -151,15 +173,19 @@ contract ShortsTracker is Governable, IShortsTracker {
         }
 
         IVault _vault = vault;
+        //获取position
         (uint256 size, /*uint256 collateral*/, uint256 averagePrice, , , , , uint256 lastIncreasedTime) = _vault.getPosition(_account, _collateralToken, _indexToken, false);
 
+        //根据开仓的价格和当前价格获取账户赢利情况
         (bool hasProfit, uint256 delta) = _vault.getDelta(_indexToken, size, averagePrice, false, lastIncreasedTime);
         // get the proportional change in pnl
+        // _sizeDelta * delta / size,计算变化的头寸
         uint256 adjustedDelta = _sizeDelta.mul(delta).div(size);
         require(adjustedDelta < MAX_INT256, "ShortsTracker: overflow");
         return hasProfit ? int256(adjustedDelta) : -int256(adjustedDelta);
     }
 
+    //获取下一个全局均价
     function _getNextGlobalAveragePrice(
         uint256 _averagePrice,
         uint256 _nextPrice,
@@ -169,6 +195,7 @@ contract ShortsTracker is Governable, IShortsTracker {
     ) public pure returns (uint256) {
         (bool hasProfit, uint256 nextDelta) = _getNextDelta(_delta, _averagePrice, _nextPrice, _realisedPnl);
 
+        //_nextPrice * _nextSize / abs(_nextSize-nextDelta)
         uint256 nextAveragePrice = _nextPrice
             .mul(_nextSize)
             .div(hasProfit ? _nextSize.sub(nextDelta) : _nextSize.add(nextDelta));
@@ -176,6 +203,7 @@ contract ShortsTracker is Governable, IShortsTracker {
         return nextAveragePrice;
     }
 
+    //XJTODO
     function _getNextDelta(
         uint256 _delta,
         uint256 _averagePrice,
@@ -193,6 +221,7 @@ contract ShortsTracker is Governable, IShortsTracker {
         if (hasProfit) {
             // global shorts pnl is positive
             if (_realisedPnl > 0) {
+                //已实现的pnl > delta,则无收益 
                 if (uint256(_realisedPnl) > _delta) {
                     _delta = uint256(_realisedPnl).sub(_delta);
                     hasProfit = false;

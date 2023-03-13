@@ -220,7 +220,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
             return ONE_USD;
         }
 
-        //当前btc,eth均是0
+        //当前btc,eth均是0,修正价格
         uint256 _spreadBasisPoints = spreadBasisPoints[_token];
 
         if (_maximise) {
@@ -230,7 +230,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
         return price.mul(BASIS_POINTS_DIVISOR.sub(_spreadBasisPoints)).div(BASIS_POINTS_DIVISOR);
     }
 
-    //使用v2价格
+    //使用v2价格,即amm和keeper的价格中计算
     function getPriceV2(address _token, bool _maximise, bool _includeAmmPrice) public view returns (uint256) {
         uint256 price = getPrimaryPrice(_token, _maximise);
 

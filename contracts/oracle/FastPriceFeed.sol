@@ -380,12 +380,14 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         // 如果token的fastPrice为0,则返回_refPrice
         if (fastPrice == 0) { return _refPrice; }
 
+        //计算link和keeper价差
         //diffBasisPoints = abs(_refPrice-fastPrice)/_refPrice
         uint256 diffBasisPoints = _refPrice > fastPrice ? _refPrice.sub(fastPrice) : fastPrice.sub(_refPrice);
         diffBasisPoints = diffBasisPoints.mul(BASIS_POINTS_DIVISOR).div(_refPrice);
 
         // create a spread between the _refPrice and the fastPrice if the maxDeviationBasisPoints is exceeded
         // or if watchers have flagged an issue with the fast price
+        // 价超差过10%
         bool hasSpread = !favorFastPrice(_token) || diffBasisPoints > maxDeviationBasisPoints;
 
         //有点差
@@ -426,6 +428,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         return true;
     }
 
+    // 
     function getPriceData(address _token) public view returns (uint256, uint256, uint256, uint256) {
         PriceDataItem memory data = priceData[_token];
         return (uint256(data.refPrice), uint256(data.refTime), uint256(data.cumulativeRefDelta), uint256(data.cumulativeFastDelta));

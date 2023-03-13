@@ -591,7 +591,6 @@ contract Timelock is ITimelock {
     function _mint(address _token, address _receiver, uint256 _amount) private {
         IMintable mintable = IMintable(_token);
 
-        //gmx_update
         if (!mintable.isMinter(address(this))) {
             mintable.setMinter(address(this), true);
         }
