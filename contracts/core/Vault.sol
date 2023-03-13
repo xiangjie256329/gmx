@@ -19,10 +19,10 @@ contract Vault is ReentrancyGuard, IVault {
 
     struct Position {
         uint256 size; //头寸
-        uint256 collateral; //抵押品
-        uint256 averagePrice;  //均价
+        uint256 collateral; //扣除手续费后抵押品的价值
+        uint256 averagePrice;  //抵押物均价
         uint256 entryFundingRate; //入场资金利率
-        uint256 reserveAmount; //保留金额
+        uint256 reserveAmount; //开仓头存换算成抵押物代币的数量
         int256 realisedPnl; //已实现收益,有可能是负数
         uint256 lastIncreasedTime; //最新增加时间
     }
@@ -108,7 +108,7 @@ contract Vault is ReentrancyGuard, IVault {
     mapping (address => uint256) public override poolAmounts; //token=>token数量
 
     // reservedAmounts tracks the number of tokens reserved for open leverage positions
-    mapping (address => uint256) public override reservedAmounts; //未平仓杠杆仓位保留的代币数量,相当于抵押的token
+    mapping (address => uint256) public override reservedAmounts; //未平仓杠杆仓位保留的代币数量,相当于已开仓的token
 
     // bufferAmounts allows specification of an amount to exclude from swaps
     // this can be used to ensure a certain amount of liquidity is available for leverage positions
@@ -700,7 +700,7 @@ contract Vault is ReentrancyGuard, IVault {
         validateLiquidation(_account, _collateralToken, _indexToken, _isLong, true);
 
         // reserve tokens to pay profits on the position
-        //先看抵押的最多有多少u
+        //开仓u的头寸能换成多少抵押token
         uint256 reserveDelta = usdToTokenMax(_collateralToken, _sizeDelta);
         //更新抵押的reserve
         position.reserveAmount = position.reserveAmount.add(reserveDelta);
@@ -1165,7 +1165,7 @@ contract Vault is ReentrancyGuard, IVault {
         return (hasProfit, delta);
     }
 
-    //获取累积融资利率
+    //获取累积融资利率,cumulativeFundingRates(_collateralToken)
     function getEntryFundingRate(address _collateralToken, address _indexToken, bool _isLong) public view returns (uint256) {
         return vaultUtils.getEntryFundingRate(_collateralToken, _indexToken, _isLong);
     }

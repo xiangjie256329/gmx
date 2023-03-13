@@ -47,13 +47,18 @@ describe("Vault.averagePrice", function () {
 
     const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
 
+    //发收益
     distributor0 = await deployContract("TimeDistributor", [])
+    //tracker
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
 
     await yieldTracker0.setDistributor(distributor0.address)
+    //distribution0设置yieldTracker0每小时可以收到1000bnb
     await distributor0.setDistribution([yieldTracker0.address], [1000], [bnb.address])
 
+    //给distributor0 5000bnb
     await bnb.mint(distributor0.address, 5000)
+    //usdg设置yieldTracker0,用户claim的时候会便利trackers更新奖励(distribute去发收益到tracker),然后转给用户
     await usdg.setYieldTrackers([yieldTracker0.address])
 
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
@@ -78,9 +83,11 @@ describe("Vault.averagePrice", function () {
   })
 
   it("position.averagePrice, buyPrice != markPrice", async () => {
+    console.log("vault usdg value",ethers.utils.formatUnits(await btc.balanceOf(vault.address),18))
     await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
     await vault.setTokenConfig(...getDaiConfig(dai, daiPriceFeed))
 
+    //默认取最近3次的价格
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
     await vault.setTokenConfig(...getBtcConfig(btc, btcPriceFeed))
 
@@ -88,15 +95,23 @@ describe("Vault.averagePrice", function () {
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
 
     await btc.mint(user1.address, expandDecimals(1, 8))
+    console.log("btc value",Number(await btc.balanceOf(user1.address)))
     await btc.connect(user1).transfer(vault.address, 250000) // 0.0025 BTC => 100 USD
     await vault.buyUSDG(btc.address, user1.address)
-
+    console.log("btc value",ethers.utils.formatUnits(await btc.balanceOf(user1.address),8))
+    console.log("usdg value",ethers.utils.formatUnits(await usdg.balanceOf(user1.address),18))
+    
     await btc.mint(user0.address, expandDecimals(1, 8))
+    //使用转入的0.00025 BTC开仓
     await btc.connect(user1).transfer(vault.address, 25000) // 0.00025 BTC => 10 USD
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(110), true))
       .to.be.revertedWith("Vault: reserve exceeds pool")
-
+    console.log("Vault: reserve exceeds pool");
+    //开90u
+    //console.log("js1 poolAmount",ethers.utils.formatUnits(vault.poolAmounts(btc.address),18))
+    //10u开90u,9倍杠杆
     await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
+    //console.log("js2 poolAmount",ethers.utils.formatUnits(vault.poolAmounts(btc.address),18))
     let blockTime = await getBlockTime(provider)
 
     expect(await glpManager.getAumInUsdg(false)).eq("99702400000000000000") // 99.7024
@@ -104,16 +119,17 @@ describe("Vault.averagePrice", function () {
 
     let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
     expect(position[0]).eq(toUsd(90)) // size
-    expect(position[1]).eq(toUsd(9.91)) // collateral, 10 - 90 * 0.1%
+    expect(position[1]).eq(toUsd(9.91)) // collateral, 10 - 90 * 0.1% (0.00025 BTC转成u后的数量)
     expect(position[2]).eq(toNormalizedPrice(41000)) // averagePrice
     expect(position[3]).eq(0) // entryFundingRate
-    expect(position[4]).eq(225000) // reserveAmount, 0.00225 * 40,000 => 90
+    expect(position[4]).eq(225000) // reserveAmount, 0.00225 * 40,000 => 90  90/100*0.00025=0.00225
     expect(position[7]).eq(blockTime)
 
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(45100))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(46100))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(47100))
 
+    //价格上涨,做多,aum变多,之前转0.0025的btc
     expect(await glpManager.getAumInUsdg(false)).eq("102202981000000000000") // 102.202981
     expect(await glpManager.getAumInUsdg(true)).eq("103183601000000000000") // 103.183601
 
@@ -191,6 +207,7 @@ describe("Vault.averagePrice", function () {
 
     await btc.mint(user0.address, expandDecimals(1, 8))
     await btc.connect(user1).transfer(vault.address, 25000) // 0.00025 BTC => 10 USD
+    //超过了池子所有
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(110), true))
       .to.be.revertedWith("Vault: reserve exceeds pool")
 
