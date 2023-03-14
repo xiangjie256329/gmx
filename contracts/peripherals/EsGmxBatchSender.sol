@@ -8,14 +8,15 @@ import "../libraries/math/SafeMath.sol";
 import "../staking/interfaces/IVester.sol";
 import "../staking/interfaces/IRewardTracker.sol";
 
+//esGMS
 contract EsGmxBatchSender {
     using SafeMath for uint256;
 
-    address public admin;
-    address public esGmx;
+    address public admin;   //admin
+    address public esGmx;   //esGMS地址
 
     constructor(address _esGmx) public {
-        admin = msg.sender;
+        admin = msg.sender; 
         esGmx = _esGmx;
     }
 
@@ -24,6 +25,7 @@ contract EsGmxBatchSender {
         _;
     }
 
+    //发送
     function send(
         IVester _vester,
         uint256 _minRatio,

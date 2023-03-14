@@ -7,6 +7,7 @@ import "../libraries/math/SafeMath.sol";
 
 import "../access/Governable.sol";
 
+//空投相关
 contract BatchSender is Governable {
     using SafeMath for uint256;
 
@@ -32,14 +33,17 @@ contract BatchSender is Governable {
         isHandler[_handler] = _isActive;
     }
 
+    //给多个账户转账
     function send(IERC20 _token, address[] memory _accounts, uint256[] memory _amounts) public onlyHandler {
         _send(_token, _accounts, _amounts, 0);
     }
 
+    //给多个账户转账,并将typeId上链
     function sendAndEmit(IERC20 _token, address[] memory _accounts, uint256[] memory _amounts, uint256 _typeId) public onlyHandler {
         _send(_token, _accounts, _amounts, _typeId);
     }
 
+    //批量转账
     function _send(IERC20 _token, address[] memory _accounts, uint256[] memory _amounts, uint256 _typeId) private {
         for (uint256 i = 0; i < _accounts.length; i++) {
             address account = _accounts[i];

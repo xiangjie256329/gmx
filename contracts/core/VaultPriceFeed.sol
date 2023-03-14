@@ -45,7 +45,8 @@ contract VaultPriceFeed is IVaultPriceFeed {
 
     mapping (address => address) public priceFeeds;//token=>feed addr
     mapping (address => uint256) public priceDecimals;//token=>price decimal
-    mapping (address => uint256) public spreadBasisPoints;//token=>点差
+    //较高喂价:价格*(10000+spreadBasisPoint),较低喂价:价格*(10000-spreadBasisPoint)
+    mapping (address => uint256) public spreadBasisPoints;//token=>点差 
     // Chainlink can return prices for stablecoins
     // that differs from 1 USD by a larger percentage than stableSwapFeeBasisPoints
     // we use strictStableTokens to cap the price to 1 USD
@@ -147,7 +148,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
         maxStrictPriceDeviation = _maxStrictPriceDeviation;
     }
 
-    //设置token配置
+    //设置喂价地址,价格decimal,是否是稳定币
     function setTokenConfig(
         address _token,
         address _priceFeed,
@@ -228,6 +229,8 @@ contract VaultPriceFeed is IVaultPriceFeed {
             return price.mul(BASIS_POINTS_DIVISOR.add(_spreadBasisPoints)).div(BASIS_POINTS_DIVISOR);
         }
 
+        console.log("price:",price);
+        console.log("_spreadBasisPoints:",_spreadBasisPoints);
         return price.mul(BASIS_POINTS_DIVISOR.sub(_spreadBasisPoints)).div(BASIS_POINTS_DIVISOR);
     }
 

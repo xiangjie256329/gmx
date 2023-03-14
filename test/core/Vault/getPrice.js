@@ -60,8 +60,10 @@ describe("Vault.getPrice", function () {
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
 
     await yieldTracker0.setDistributor(distributor0.address)
+    //每小时发1000
     await distributor0.setDistribution([yieldTracker0.address], [1000], [bnb.address])
 
+    //转先5000
     await bnb.mint(distributor0.address, 5000)
     await usdg.setYieldTrackers([yieldTracker0.address])
 
@@ -94,19 +96,25 @@ describe("Vault.getPrice", function () {
     await usdcPriceFeed.setLatestAnswer(toChainlinkPrice(1.1))
     expect(await vaultPriceFeed.getPrice(usdc.address, true, true, true)).eq(expandDecimals(11, 29))
 
+    //最大价格偏离0.1
     await vaultPriceFeed.setMaxStrictPriceDeviation(expandDecimals(1, 29))
     expect(await vaultPriceFeed.getPrice(usdc.address, true, true, true)).eq(expandDecimals(1, 30))
 
+    //getPrice取最近3次的价格,如果取较高的超过1.1,使用1.11,较低的为1则不会
     await usdcPriceFeed.setLatestAnswer(toChainlinkPrice(1.11))
     expect(await vaultPriceFeed.getPrice(usdc.address, true, true, true)).eq(expandDecimals(111, 28))
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(1, 30))
-
+    
+    console.log(ethers.utils.formatUnits(await vaultPriceFeed.getPrice(usdc.address, true, true, true),30))
     await usdcPriceFeed.setLatestAnswer(toChainlinkPrice(0.9))
     expect(await vaultPriceFeed.getPrice(usdc.address, true, true, true)).eq(expandDecimals(111, 28))
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(1, 30))
 
+    console.log(ethers.utils.formatUnits(await vaultPriceFeed.getPrice(usdc.address, false, true, true),30))
+    //设置修正价格,稳定币不会使用修正价格
     await vaultPriceFeed.setSpreadBasisPoints(usdc.address, 20)
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(1, 30))
+    console.log(ethers.utils.formatUnits(await vaultPriceFeed.getPrice(usdc.address, false, true, true),30))
 
     await vaultPriceFeed.setSpreadBasisPoints(usdc.address, 0)
     await usdcPriceFeed.setLatestAnswer(toChainlinkPrice(0.89))

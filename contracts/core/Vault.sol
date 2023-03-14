@@ -55,7 +55,7 @@ contract Vault is ReentrancyGuard, IVault {
 
     uint256 public override maxLeverage = 50 * 10000; // 50x 最大杠杆倍数,XJCH_100
 
-    uint256 public override liquidationFeeUsd; //usd流动性费 5000000000000000000000000000000 5
+    uint256 public override liquidationFeeUsd; //清算费用 5000000000000000000000000000000 5
     uint256 public override taxBasisPoints = 50; // 0.5% 税基点 
     uint256 public override stableTaxBasisPoints = 20; // 0.2% 稳定币税基点 XJCH_5
     uint256 public override mintBurnFeeBasisPoints = 30; // 0.3% mint u 销毁费基点 XJCH_25,0.25%
@@ -384,11 +384,11 @@ contract Vault is ReentrancyGuard, IVault {
     function setTokenConfig(
         address _token,
         uint256 _tokenDecimals,
-        uint256 _tokenWeight,
-        uint256 _minProfitBps,
-        uint256 _maxUsdgAmount,
-        bool _isStable,
-        bool _isShortable
+        uint256 _tokenWeight,//权重
+        uint256 _minProfitBps,//最小收益显示,低于这个值在一定时间段内有可能不显示收益
+        uint256 _maxUsdgAmount,//最大usdg的上限
+        bool _isStable,//是否是稳定币
+        bool _isShortable//是否可做空
     ) external override {
         _onlyGov();
         // increment token count for the first time

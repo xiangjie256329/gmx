@@ -46,6 +46,7 @@ describe("ShortsTracker", function () {
       const avgPrice = toUsd(_avgPrice)
       const nextPrice = toUsd(_nextPrice)
       const realisedPnl = toUsd(_realisedPnl)
+      //设置空头均价
       await shortsTracker.connect(user0).setGlobalShortAveragePrice(eth.address, avgPrice)
       const [nextSize, nextAvgPrice] = await shortsTracker.getNextGlobalShortDataWithRealisedPnl(eth.address, nextPrice, toUsd(20000), realisedPnl, false)
       expect(nextAvgPrice, i).to.eq(expectedAvgPrice)
