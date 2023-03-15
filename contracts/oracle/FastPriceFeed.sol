@@ -163,13 +163,13 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxTimeDeviation = _maxTimeDeviation;
     }
 
-    //设置最大时间间隔
+    //设置喂价最大时间间隔
     function setPriceDuration(uint256 _priceDuration) external override onlyGov {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
     }
 
-    //设置最大时间延迟
+    //设置喂价最大时间延迟
     function setMaxPriceUpdateDelay(uint256 _maxPriceUpdateDelay) external override onlyGov {
         maxPriceUpdateDelay = _maxPriceUpdateDelay;
     }

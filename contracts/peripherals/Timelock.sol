@@ -23,28 +23,28 @@ import "../libraries/token/IERC20.sol";
 contract Timelock is ITimelock {
     using SafeMath for uint256;
 
-    uint256 public constant PRICE_PRECISION = 10 ** 30;
-    uint256 public constant MAX_BUFFER = 5 days;
-    uint256 public constant MAX_FUNDING_RATE_FACTOR = 200; // 0.02%
-    uint256 public constant MAX_LEVERAGE_VALIDATION = 500000; // 50x
+    uint256 public constant PRICE_PRECISION = 10 ** 30; //价格精度
+    uint256 public constant MAX_BUFFER = 5 days;    //最大天数
+    uint256 public constant MAX_FUNDING_RATE_FACTOR = 200; // 0.02% 最大资金费率
+    uint256 public constant MAX_LEVERAGE_VALIDATION = 500000; // 50x 最大杠杆
 
-    uint256 public buffer;
-    address public admin;
+    uint256 public buffer;  //缓冲时间
+    address public admin;   //admin
 
-    address public tokenManager;
-    address public mintReceiver;
-    address public glpManager;
-    address public rewardRouter;
-    uint256 public maxTokenSupply;
+    address public tokenManager;    //tokenManager
+    address public mintReceiver;    //卖出usdg接收token地址
+    address public glpManager;      //glp manager地址
+    address public rewardRouter;    //rewardRouter地址
+    uint256 public maxTokenSupply;  //maxTokenSupply
 
-    uint256 public marginFeeBasisPoints;
-    uint256 public maxMarginFeeBasisPoints;
-    bool public shouldToggleIsLeverageEnabled;
+    uint256 public marginFeeBasisPoints; //保证金基点 10
+    uint256 public maxMarginFeeBasisPoints; //最大保证金基点 500
+    bool public shouldToggleIsLeverageEnabled; //是否触发启动杠杆
 
-    mapping (bytes32 => uint256) public pendingActions;
+    mapping (bytes32 => uint256) public pendingActions; //即将执行的操作
 
-    mapping (address => bool) public isHandler;
-    mapping (address => bool) public isKeeper;
+    mapping (address => bool) public isHandler; //白名单
+    mapping (address => bool) public isKeeper;  //keeper
 
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
@@ -66,16 +66,19 @@ contract Timelock is ITimelock {
     );
     event ClearAction(bytes32 action);
 
+    //仅admin
     modifier onlyAdmin() {
         require(msg.sender == admin, "Timelock: forbidden");
         _;
     }
 
+    //admin或白名单
     modifier onlyHandlerAndAbove() {
         require(msg.sender == admin || isHandler[msg.sender], "Timelock: forbidden");
         _;
     }
 
+    //admin,白名单,keeper
     modifier onlyKeeperAndAbove() {
         require(msg.sender == admin || isHandler[msg.sender] || isKeeper[msg.sender], "Timelock: forbidden");
         _;
@@ -110,19 +113,23 @@ contract Timelock is ITimelock {
         maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
     }
 
+    //tokenManager设置admin
     function setAdmin(address _admin) external override onlyTokenManager {
         admin = _admin;
     }
 
+    //target设置admin
     function setExternalAdmin(address _target, address _admin) external onlyAdmin {
         require(_target != address(this), "Timelock: invalid _target");
         IAdmin(_target).setAdmin(_admin);
     }
 
+    //设置白名单
     function setContractHandler(address _handler, bool _isActive) external onlyAdmin {
         isHandler[_handler] = _isActive;
     }
 
+    //初始化glpManager
     function initGlpManager() external onlyAdmin {
         IGlpManager _glpManager = IGlpManager(glpManager);
 
@@ -136,6 +143,7 @@ contract Timelock is ITimelock {
         vault.setManager(glpManager, true);
     }
 
+    //初始化奖励router
     function initRewardRouter() external onlyAdmin {
         IRewardRouterV2 _rewardRouter = IRewardRouterV2(rewardRouter);
 
@@ -144,36 +152,43 @@ contract Timelock is ITimelock {
         IHandlerTarget(glpManager).setHandler(rewardRouter, true);
     }
 
+    //设置keeper
     function setKeeper(address _keeper, bool _isActive) external onlyAdmin {
         isKeeper[_keeper] = _isActive;
     }
 
+    //设置buffer
     function setBuffer(uint256 _buffer) external onlyAdmin {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         require(_buffer > buffer, "Timelock: buffer cannot be decreased");
         buffer = _buffer;
     }
 
+    //admin设置金库杠杆
     function setMaxLeverage(address _vault, uint256 _maxLeverage) external onlyAdmin {
       require(_maxLeverage > MAX_LEVERAGE_VALIDATION, "Timelock: invalid _maxLeverage");
       IVault(_vault).setMaxLeverage(_maxLeverage);
     }
 
+    //keeper设置资金费率
     function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external onlyKeeperAndAbove {
         require(_fundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _fundingRateFactor");
         require(_stableFundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _stableFundingRateFactor");
         IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
     }
 
+    //设置是否启用杠杆
     function setShouldToggleIsLeverageEnabled(bool _shouldToggleIsLeverageEnabled) external onlyHandlerAndAbove {
         shouldToggleIsLeverageEnabled = _shouldToggleIsLeverageEnabled;
     }
 
+    //设置保证金基点
     function setMarginFeeBasisPoints(uint256 _marginFeeBasisPoints, uint256 _maxMarginFeeBasisPoints) external onlyHandlerAndAbove {
         marginFeeBasisPoints = _marginFeeBasisPoints;
         maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
     }
 
+    //设置金库swap费
     function setSwapFees(
         address _vault,
         uint256 _taxBasisPoints,
@@ -200,6 +215,7 @@ contract Timelock is ITimelock {
     // assign _marginFeeBasisPoints to this.marginFeeBasisPoints
     // because enableLeverage would update Vault.marginFeeBasisPoints to this.marginFeeBasisPoints
     // and disableLeverage would reset the Vault.marginFeeBasisPoints to this.maxMarginFeeBasisPoints
+    // 更新的数据更多一些
     function setFees(
         address _vault,
         uint256 _taxBasisPoints,
@@ -227,6 +243,7 @@ contract Timelock is ITimelock {
         );
     }
 
+    //白名单启用杠杆,并更新保证金基点
     function enableLeverage(address _vault) external override onlyHandlerAndAbove {
         IVault vault = IVault(_vault);
 
@@ -247,6 +264,7 @@ contract Timelock is ITimelock {
         );
     }
 
+    //白名单禁用杠杆,并更新最大保证金基点
     function disableLeverage(address _vault) external override onlyHandlerAndAbove {
         IVault vault = IVault(_vault);
 
@@ -267,18 +285,20 @@ contract Timelock is ITimelock {
         );
     }
 
+    //白名单设置是否启用杠杆
     function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyHandlerAndAbove {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
     }
 
+    //keeper设置token配置
     function setTokenConfig(
         address _vault,
         address _token,
-        uint256 _tokenWeight,
-        uint256 _minProfitBps,
-        uint256 _maxUsdgAmount,
-        uint256 _bufferAmount,
-        uint256 _usdgAmount
+        uint256 _tokenWeight,//权重
+        uint256 _minProfitBps,//最小收益显示
+        uint256 _maxUsdgAmount,//池子允许的最大usdg
+        uint256 _bufferAmount,//池子允许的token缓冲金额
+        uint256 _usdgAmount//设置token当前的usdgAmount
     ) external onlyKeeperAndAbove {
         require(_minProfitBps <= 500, "Timelock: invalid _minProfitBps");
 
@@ -304,12 +324,14 @@ contract Timelock is ITimelock {
         IVault(_vault).setUsdgAmount(_token, _usdgAmount);
     }
 
+    //keeper设置一组token的usdg amount
     function setUsdgAmounts(address _vault, address[] memory _tokens, uint256[] memory _usdgAmounts) external onlyKeeperAndAbove {
         for (uint256 i = 0; i < _tokens.length; i++) {
             IVault(_vault).setUsdgAmount(_tokens[i], _usdgAmounts[i]);
         }
     }
 
+    //更新usdg supply,相当于可以usdg有变化
     function updateUsdgSupply(uint256 usdgAmount) external onlyKeeperAndAbove {
         address usdg = IGlpManager(glpManager).usdg();
         uint256 balance = IERC20(usdg).balanceOf(glpManager);
@@ -327,15 +349,18 @@ contract Timelock is ITimelock {
         IUSDG(usdg).removeVault(address(this));
     }
 
+    //admin设置glpManager价格权重
     function setShortsTrackerAveragePriceWeight(uint256 _shortsTrackerAveragePriceWeight) external onlyAdmin {
         IGlpManager(glpManager).setShortsTrackerAveragePriceWeight(_shortsTrackerAveragePriceWeight);
     }
 
+    //设置glp的移除流动性的准确时间
     function setGlpCooldownDuration(uint256 _cooldownDuration) external onlyAdmin {
         require(_cooldownDuration < 2 hours, "Timelock: invalid _cooldownDuration");
         IGlpManager(glpManager).setCooldownDuration(_cooldownDuration);
     }
 
+    //设置最大空头头寸,开仓不允许超过最大值
     function setMaxGlobalShortSize(address _vault, address _token, uint256 _amount) external onlyAdmin {
         IVault(_vault).setMaxGlobalShortSize(_token, _amount);
     }

@@ -6,6 +6,7 @@ import "../libraries/math/SafeMath.sol";
 
 import "../core/interfaces/IOrderBook.sol";
 
+//订单簿reader
 contract OrderBookReader {
     using SafeMath for uint256;
 
@@ -17,6 +18,7 @@ contract OrderBookReader {
         uint256 addressLength;
     }
 
+    //获取某个账户从某个下标开始的开仓单信息
     function getIncreaseOrders(
         address payable _orderBookAddress, 
         address _account,
@@ -24,7 +26,9 @@ contract OrderBookReader {
     ) external view returns (uint256[] memory, address[] memory) {
         Vars memory vars = Vars(0, 0, _account, 5, 3);
 
+        //uint返回值
         uint256[] memory uintProps = new uint256[](vars.uintLength * _indices.length);
+        //地址返回值
         address[] memory addressProps = new address[](vars.addressLength * _indices.length);
 
         IOrderBook orderBook = IOrderBook(_orderBookAddress);
@@ -59,6 +63,7 @@ contract OrderBookReader {
         return (uintProps, addressProps);
     }
 
+    //获取某个用户从某个下标开始的平仓单
     function getDecreaseOrders(
         address payable _orderBookAddress, 
         address _account,
@@ -99,6 +104,7 @@ contract OrderBookReader {
         return (uintProps, addressProps);
     }
 
+    //获取某个用户的swap单
     function getSwapOrders(
         address payable _orderBookAddress, 
         address _account,

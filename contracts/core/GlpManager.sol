@@ -237,6 +237,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         //空头跟踪的均价
         uint256 shortsTrackerAveragePrice = _shortsTracker.globalShortAveragePrices(_token);
 
+        //金库获取的均价*(1-权重)+追踪*权重
         //(vaultAveragePrice*(10000-_shortsTrackerAveragePriceWeight)+shortsTrackerAveragePrice*_shortsTrackerAveragePriceWeight)/10000
         return vaultAveragePrice.mul(BASIS_POINTS_DIVISOR.sub(_shortsTrackerAveragePriceWeight))
             .add(shortsTrackerAveragePrice.mul(_shortsTrackerAveragePriceWeight))

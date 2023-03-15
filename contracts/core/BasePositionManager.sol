@@ -20,6 +20,7 @@ import "../peripherals/interfaces/ITimelock.sol";
 
 import "../referrals/interfaces/IReferralStorage.sol";
 
+//创建开仓/平仓
 contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governable {
 
     using SafeMath for uint256;

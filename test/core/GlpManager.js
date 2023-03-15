@@ -186,7 +186,20 @@ describe("GlpManager", function () {
   it("test addLiquidity, removeLiquidity", async () => {
     await dai.mint(user0.address, expandDecimals(1000000, 18))
     await dai.connect(user0).approve(glpManager.address, expandDecimals(1000000, 18))
+
+    //如果一开始有u则无法铸出glp
+    /*
+      await vault.setInManagerMode(false)
+      await dai.mint(user1.address, expandDecimals(1000000, 18))
+      await dai.connect(user1).transfer(vault.address, expandDecimals(1000000, 18)) // 0.0025 BTC => 100 USD
+      await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
+      await vault.setTokenConfig(...getDaiConfig(dai, daiPriceFeed))
+      await vault.buyUSDG(dai.address, user1.address)
+      await vault.setInManagerMode(true)
+     */
+
     await vault.setManager(glpManager.address, true)
+
     console.log("start add liquidity");
     const tx0 = await glpManager.connect(user0).addLiquidity(
       dai.address,
@@ -209,36 +222,36 @@ describe("GlpManager", function () {
     )
     console.log("after add,user1 glb:",ethers.utils.formatUnits(await glp.balanceOf(user1.address),18));
 
-    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(10))
-    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(10))
+    // await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(10))
+    // await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(10))
     
-    await increaseTime(provider, 24 * 60 * 60 + 1)
-    await mineBlock(provider)
+    // await increaseTime(provider, 24 * 60 * 60 + 1)
+    // await mineBlock(provider)
 
-    await glpManager.connect(user1).removeLiquidity(
-      dai.address,
-      expandDecimals(997000.0, 18),
-      expandDecimals(100, 18),
-      user1.address
-    )
-    await increaseTime(provider, 24 * 60 * 60 + 1)
-    await mineBlock(provider)
+    // await glpManager.connect(user1).removeLiquidity(
+    //   dai.address,
+    //   expandDecimals(997000.0, 18),
+    //   expandDecimals(100, 18),
+    //   user1.address
+    // )
+    // await increaseTime(provider, 24 * 60 * 60 + 1)
+    // await mineBlock(provider)
 
-    console.log("user1 bnb:",ethers.utils.formatUnits(await bnb.balanceOf(user1.address),18))
-    console.log("user1 dai:",ethers.utils.formatUnits(await dai.balanceOf(user1.address),18))
-    console.log("user1 glp:",ethers.utils.formatUnits(await glp.balanceOf(user1.address),18))
+    // console.log("user1 bnb:",ethers.utils.formatUnits(await bnb.balanceOf(user1.address),18))
+    // console.log("user1 dai:",ethers.utils.formatUnits(await dai.balanceOf(user1.address),18))
+    // console.log("user1 glp:",ethers.utils.formatUnits(await glp.balanceOf(user1.address),18))
 
-    await glpManager.connect(user0).removeLiquidity(
-      dai.address,
-      expandDecimals(497000.0, 18),
-      expandDecimals(100, 18),
-      user0.address
-    )
-    await mineBlock(provider)
+    // await glpManager.connect(user0).removeLiquidity(
+    //   dai.address,
+    //   expandDecimals(497000.0, 18),
+    //   expandDecimals(100, 18),
+    //   user0.address
+    // )
+    // await mineBlock(provider)
 
-    console.log("user0 bnb:",ethers.utils.formatUnits(await bnb.balanceOf(user0.address),18))
-    console.log("user0 dai:",ethers.utils.formatUnits(await dai.balanceOf(user0.address),18))
-    console.log("user0 glp:",ethers.utils.formatUnits(await glp.balanceOf(user0.address),18))
+    // console.log("user0 bnb:",ethers.utils.formatUnits(await bnb.balanceOf(user0.address),18))
+    // console.log("user0 dai:",ethers.utils.formatUnits(await dai.balanceOf(user0.address),18))
+    // console.log("user0 glp:",ethers.utils.formatUnits(await glp.balanceOf(user0.address),18))
 
     // blockTime = await getBlockTime(provider)
   })

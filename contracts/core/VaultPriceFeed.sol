@@ -137,7 +137,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
         favorPrimaryPrice = _favorPrimaryPrice;
     }
 
-    //设置priceSampleSpace
+    //设置使用最近几次的喂价
     function setPriceSampleSpace(uint256 _priceSampleSpace) external override onlyGov {
         require(_priceSampleSpace > 0, "VaultPriceFeed: invalid _priceSampleSpace");
         priceSampleSpace = _priceSampleSpace;

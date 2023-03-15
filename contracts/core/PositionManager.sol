@@ -9,6 +9,7 @@ import "./interfaces/IOrderBook.sol";
 import "../peripherals/interfaces/ITimelock.sol";
 import "./BasePositionManager.sol";
 
+//在BasePositionManager的基础上执行开/平仓
 contract PositionManager is BasePositionManager {
 
     address public orderBook; //orderBook

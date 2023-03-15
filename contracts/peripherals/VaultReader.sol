@@ -6,24 +6,29 @@ import "../core/interfaces/IVault.sol";
 import "../core/interfaces/IVaultPriceFeed.sol";
 import "../core/interfaces/IBasePositionManager.sol";
 
+//读取金库合约参数信息
 contract VaultReader {
     function getVaultTokenInfoV3(address _vault, address _positionManager, address _weth, uint256 _usdgAmount, address[] memory _tokens) public view returns (uint256[] memory) {
         uint256 propsLength = 14;
 
         IVault vault = IVault(_vault);
+        //link喂价
         IVaultPriceFeed priceFeed = IVaultPriceFeed(vault.priceFeed());
         IBasePositionManager positionManager = IBasePositionManager(_positionManager);
 
         uint256[] memory amounts = new uint256[](_tokens.length * propsLength);
+        //遍历传入的token
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             if (token == address(0)) {
                 token = _weth;
             }
 
+            //读取token数据
             amounts[i * propsLength] = vault.poolAmounts(token);
             amounts[i * propsLength + 1] = vault.reservedAmounts(token);
             amounts[i * propsLength + 2] = vault.usdgAmounts(token);
+            //用u能换出多少token
             amounts[i * propsLength + 3] = vault.getRedemptionAmount(token, _usdgAmount);
             amounts[i * propsLength + 4] = vault.tokenWeights(token);
             amounts[i * propsLength + 5] = vault.bufferAmounts(token);
@@ -40,6 +45,7 @@ contract VaultReader {
         return amounts;
     }
 
+    //应该优先使用这个函数,可以多一个参数
     function getVaultTokenInfoV4(address _vault, address _positionManager, address _weth, uint256 _usdgAmount, address[] memory _tokens) public view returns (uint256[] memory) {
         uint256 propsLength = 15;
 
@@ -63,6 +69,7 @@ contract VaultReader {
             amounts[i * propsLength + 6] = vault.maxUsdgAmounts(token);
             amounts[i * propsLength + 7] = vault.globalShortSizes(token);
             amounts[i * propsLength + 8] = positionManager.maxGlobalShortSizes(token);
+            //增加了一个获取
             amounts[i * propsLength + 9] = positionManager.maxGlobalLongSizes(token);
             amounts[i * propsLength + 10] = vault.getMinPrice(token);
             amounts[i * propsLength + 11] = vault.getMaxPrice(token);
