@@ -14,6 +14,7 @@ import "../tokens/interfaces/IWETH.sol";
 import "../core/interfaces/IGlpManager.sol";
 import "../access/Governable.sol";
 
+//现在用的v2了
 contract RewardRouter is ReentrancyGuard, Governable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;

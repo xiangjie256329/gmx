@@ -5,6 +5,7 @@ pragma solidity 0.6.12;
 import "./interfaces/IRewardTracker.sol";
 import "../access/Governable.sol";
 
+//给账户质押
 contract StakeManager is Governable {
     function stakeForAccount(
         address _rewardTracker,

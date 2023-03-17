@@ -162,6 +162,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
 
     //获取价格
     function getPrice(address _token, bool _maximise, bool _includeAmmPrice, bool /* _useSwapPricing */) public override view returns (uint256) {
+        //XJTODO useV3Price
         uint256 price = useV2Pricing ? getPriceV2(_token, _maximise, _includeAmmPrice) : getPriceV1(_token, _maximise, _includeAmmPrice);
 
         //目前btc,eth的adjustmentBps均为0
@@ -229,8 +230,6 @@ contract VaultPriceFeed is IVaultPriceFeed {
             return price.mul(BASIS_POINTS_DIVISOR.add(_spreadBasisPoints)).div(BASIS_POINTS_DIVISOR);
         }
 
-        console.log("price:",price);
-        console.log("_spreadBasisPoints:",_spreadBasisPoints);
         return price.mul(BASIS_POINTS_DIVISOR.sub(_spreadBasisPoints)).div(BASIS_POINTS_DIVISOR);
     }
 

@@ -15,6 +15,7 @@ import "hardhat/console.sol";
 
 pragma solidity 0.6.12;
 
+//glp流动性操作
 contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;

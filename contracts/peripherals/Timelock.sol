@@ -365,57 +365,70 @@ contract Timelock is ITimelock {
         IVault(_vault).setMaxGlobalShortSize(_token, _amount);
     }
 
+    //remove admin
     function removeAdmin(address _token, address _account) external onlyAdmin {
         IYieldToken(_token).removeAdmin(_account);
     }
 
+    //设置swap启用
     function setIsSwapEnabled(address _vault, bool _isSwapEnabled) external onlyKeeperAndAbove {
         IVault(_vault).setIsSwapEnabled(_isSwapEnabled);
     }
 
+    //gov 设置推荐比例/等级
     function setTier(address _referralStorage, uint256 _tierId, uint256 _totalRebate, uint256 _discountShare) external onlyKeeperAndAbove {
         IReferralStorage(_referralStorage).setTier(_tierId, _totalRebate, _discountShare);
     }
 
+    //gov 设置推荐人与推荐比例绑定
     function setReferrerTier(address _referralStorage, address _referrer, uint256 _tierId) external onlyKeeperAndAbove {
         IReferralStorage(_referralStorage).setReferrerTier(_referrer, _tierId);
     }
 
+    //gov设置账户的邀请码
     function govSetCodeOwner(address _referralStorage, bytes32 _code, address _newAccount) external onlyKeeperAndAbove {
         IReferralStorage(_referralStorage).govSetCodeOwner(_code, _newAccount);
     }
 
+    //设置vault utils地址
     function setVaultUtils(address _vault, IVaultUtils _vaultUtils) external onlyAdmin {
         IVault(_vault).setVaultUtils(_vaultUtils);
     }
 
+    //设置最大gas,当前是0,超过会执行失败
     function setMaxGasPrice(address _vault, uint256 _maxGasPrice) external onlyAdmin {
         require(_maxGasPrice > 5000000000, "Invalid _maxGasPrice");
         IVault(_vault).setMaxGasPrice(_maxGasPrice);
     }
 
+    //gov提取token的feeReserve
     function withdrawFees(address _vault, address _token, address _receiver) external onlyAdmin {
         IVault(_vault).withdrawFees(_token, _receiver);
     }
 
+    //提取所有token的feeReserve
     function batchWithdrawFees(address _vault, address[] memory _tokens) external onlyKeeperAndAbove {
         for (uint256 i = 0; i < _tokens.length; i++) {
             IVault(_vault).withdrawFees(_tokens[i], admin);
         }
     }
 
+    //设置管理员流动性模式
     function setInPrivateLiquidationMode(address _vault, bool _inPrivateLiquidationMode) external onlyAdmin {
         IVault(_vault).setInPrivateLiquidationMode(_inPrivateLiquidationMode);
     }
 
+    //设置流动性
     function setLiquidator(address _vault, address _liquidator, bool _isActive) external onlyAdmin {
         IVault(_vault).setLiquidator(_liquidator, _isActive);
     }
 
+    //设置私有模式
     function setInPrivateTransferMode(address _token, bool _inPrivateTransferMode) external onlyAdmin {
         IBaseToken(_token).setInPrivateTransferMode(_inPrivateTransferMode);
     }
 
+    //XJTODO
     function batchSetBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyKeeperAndAbove {
         require(_accounts.length == _amounts.length, "Timelock: invalid lengths");
 
@@ -430,16 +443,19 @@ contract Timelock is ITimelock {
         IHandlerTarget(_vester).setHandler(address(this), false);
     }
 
+    //admin将sender的token转进来 
     function transferIn(address _sender, address _token, uint256 _amount) external onlyAdmin {
         IERC20(_token).transferFrom(_sender, address(this), _amount);
     }
 
+    //pending approve
     function signalApprove(address _token, address _spender, uint256 _amount) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("approve", _token, _spender, _amount));
         _setPendingAction(action);
         emit SignalApprove(_token, _spender, _amount, action);
     }
 
+    //admin 验证approve
     function approve(address _token, address _spender, uint256 _amount) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("approve", _token, _spender, _amount));
         _validateAction(action);
@@ -447,12 +463,14 @@ contract Timelock is ITimelock {
         IERC20(_token).approve(_spender, _amount);
     }
 
+    //签名提现
     function signalWithdrawToken(address _target, address _token, address _receiver, uint256 _amount) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("withdrawToken", _target, _token, _receiver, _amount));
         _setPendingAction(action);
         emit SignalWithdrawToken(_target, _token, _receiver, _amount, action);
     }
 
+    //验证提现
     function withdrawToken(address _target, address _token, address _receiver, uint256 _amount) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("withdrawToken", _target, _token, _receiver, _amount));
         _validateAction(action);
@@ -460,12 +478,14 @@ contract Timelock is ITimelock {
         IBaseToken(_target).withdrawToken(_token, _receiver, _amount);
     }
 
+    //签名mint
     function signalMint(address _token, address _receiver, uint256 _amount) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("mint", _token, _receiver, _amount));
         _setPendingAction(action);
         emit SignalMint(_token, _receiver, _amount, action);
     }
 
+    //执行mint
     function processMint(address _token, address _receiver, uint256 _amount) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("mint", _token, _receiver, _amount));
         _validateAction(action);
@@ -474,12 +494,14 @@ contract Timelock is ITimelock {
         _mint(_token, _receiver, _amount);
     }
 
+    //签名设置gov
     function signalSetGov(address _target, address _gov) external override onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setGov", _target, _gov));
         _setPendingAction(action);
         emit SignalSetGov(_target, _gov, action);
     }
 
+    //执行设置gov
     function setGov(address _target, address _gov) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setGov", _target, _gov));
         _validateAction(action);
@@ -487,12 +509,14 @@ contract Timelock is ITimelock {
         ITimelockTarget(_target).setGov(_gov);
     }
 
+    //签名设置白名单
     function signalSetHandler(address _target, address _handler, bool _isActive) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setHandler", _target, _handler, _isActive));
         _setPendingAction(action);
         emit SignalSetHandler(_target, _handler, _isActive, action);
     }
 
+    //设置白名单
     function setHandler(address _target, address _handler, bool _isActive) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setHandler", _target, _handler, _isActive));
         _validateAction(action);
@@ -500,12 +524,14 @@ contract Timelock is ITimelock {
         IHandlerTarget(_target).setHandler(_handler, _isActive);
     }
 
+    //签名设置喂价
     function signalSetPriceFeed(address _vault, address _priceFeed) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setPriceFeed", _vault, _priceFeed));
         _setPendingAction(action);
         emit SignalSetPriceFeed(_vault, _priceFeed, action);
     }
 
+    //验证设置喂价
     function setPriceFeed(address _vault, address _priceFeed) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setPriceFeed", _vault, _priceFeed));
         _validateAction(action);
@@ -513,12 +539,14 @@ contract Timelock is ITimelock {
         IVault(_vault).setPriceFeed(_priceFeed);
     }
 
+    //签名取出token
     function signalRedeemUsdg(address _vault, address _token, uint256 _amount) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("redeemUsdg", _vault, _token, _amount));
         _setPendingAction(action);
         emit SignalRedeemUsdg(_vault, _token, _amount);
     }
 
+    //取出token
     function redeemUsdg(address _vault, address _token, uint256 _amount) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("redeemUsdg", _vault, _token, _amount));
         _validateAction(action);
@@ -537,6 +565,7 @@ contract Timelock is ITimelock {
         IUSDG(usdg).removeVault(address(this));
     }
 
+    //签名设置token配置
     function signalVaultSetTokenConfig(
         address _vault,
         address _token,
@@ -573,6 +602,7 @@ contract Timelock is ITimelock {
         );
     }
 
+    //验证设置token配置
     function vaultSetTokenConfig(
         address _vault,
         address _token,
@@ -609,10 +639,12 @@ contract Timelock is ITimelock {
         );
     }
 
+    //取消操作
     function cancelAction(bytes32 _action) external onlyAdmin {
         _clearAction(_action);
     }
 
+    //mint
     function _mint(address _token, address _receiver, uint256 _amount) private {
         IMintable mintable = IMintable(_token);
 
@@ -624,17 +656,20 @@ contract Timelock is ITimelock {
         require(IERC20(_token).totalSupply() <= maxTokenSupply, "Timelock: maxTokenSupply exceeded");
     }
 
+    //设置pending操作
     function _setPendingAction(bytes32 _action) private {
         require(pendingActions[_action] == 0, "Timelock: action already signalled");
         pendingActions[_action] = block.timestamp.add(buffer);
         emit SignalPendingAction(_action);
     }
 
+    //验证操作
     function _validateAction(bytes32 _action) private view {
         require(pendingActions[_action] != 0, "Timelock: action not signalled");
         require(pendingActions[_action] < block.timestamp, "Timelock: action time not yet passed");
     }
 
+    //清除操作
     function _clearAction(bytes32 _action) private {
         require(pendingActions[_action] != 0, "Timelock: invalid _action");
         delete pendingActions[_action];

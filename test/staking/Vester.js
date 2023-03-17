@@ -116,12 +116,12 @@ describe("Vester", function () {
 
   it("setBonusRewards", async () => {
     const vester = await deployContract("Vester", [
-      "Vested GMX",
-      "veGMX",
-      secondsPerYear,
-      esGmx.address,
+      "Vested GMX", //name
+      "veGMX",  //symbol
+      secondsPerYear, //1年
+      esGmx.address, //充值token
       AddressZero,
-      gmx.address,
+      gmx.address, //奖励token
       AddressZero
     ])
 
@@ -182,28 +182,37 @@ describe("Vester", function () {
     await increaseTime(provider, 24 * 60 * 60)
     await mineBlock(provider)
 
+    console.log("hasMaxVestableAmount:",await vester.hasMaxVestableAmount())
+    //每秒产出0.000031709791983764个veGmx
+
     expect(await esGmx.balanceOf(user0.address)).eq(0)
     expect(await gmx.balanceOf(user0.address)).eq(0)
     expect(await vester.balanceOf(user0.address)).eq(expandDecimals(1000, 18))
     expect(await vester.getTotalVested(user0.address)).eq(expandDecimals(1000, 18))
     expect(await vester.cumulativeClaimAmounts(user0.address)).eq(0)
     expect(await vester.claimedAmounts(user0.address)).eq(0)
+    
     expect(await vester.claimable(user0.address)).gt("2730000000000000000") // 1000 / 365 => ~2.739
     expect(await vester.claimable(user0.address)).lt("2750000000000000000")
     expect(await vester.pairAmounts(user0.address)).eq(0)
     expect(await vester.lastVestingTimes(user0.address)).eq(blockTime)
 
+    //vester里面并没有gmx
     await expect(vester.connect(user0).claim())
       .to.be.revertedWith("BaseToken: transfer amount exceeds balance")
 
+    //往线性释放里面放2000个gmx
     await gmx.mint(vester.address, expandDecimals(2000, 18))
 
+    //claim取出一些gmx
     await vester.connect(user0).claim()
     blockTime = await getBlockTime(provider)
 
     expect(await esGmx.balanceOf(user0.address)).eq(0)
     expect(await gmx.balanceOf(user0.address)).gt("2730000000000000000")
     expect(await gmx.balanceOf(user0.address)).lt("2750000000000000000")
+    console.log("gmx claim value:",ethers.utils.formatUnits(await gmx.balanceOf(user0.address),18))
+    console.log("vester balance1.0",ethers.utils.formatUnits(await vester.balanceOf(user0.address)))
 
     let gmxAmount = await gmx.balanceOf(user0.address)
     expect(await vester.balanceOf(user0.address)).eq(expandDecimals(1000, 18).sub(gmxAmount))
@@ -215,6 +224,7 @@ describe("Vester", function () {
     expect(await vester.pairAmounts(user0.address)).eq(0)
     expect(await vester.lastVestingTimes(user0.address)).eq(blockTime)
 
+    //再挖2天
     await increaseTime(provider, 48 * 60 * 60)
     await mineBlock(provider)
 
@@ -223,6 +233,7 @@ describe("Vester", function () {
     expect(await vester.claimable(user0.address)).gt("5478000000000000000") // 1000 / 365 * 2 => ~5.479
     expect(await vester.claimable(user0.address)).lt("5480000000000000000")
 
+    //挖半年
     await increaseTime(provider, (parseInt(365 / 2 - 1)) * 24 * 60 * 60)
     await mineBlock(provider)
 
@@ -239,6 +250,8 @@ describe("Vester", function () {
     expect(await gmx.balanceOf(user0.address)).lt(expandDecimals(505, 18))
 
     gmxAmount = await gmx.balanceOf(user0.address)
+    console.log("half year,use0 gmx balance:",ethers.utils.formatUnits(gmxAmount,18))
+    console.log("vester balance2.0",ethers.utils.formatUnits(await vester.balanceOf(user0.address)))
     expect(await vester.balanceOf(user0.address)).eq(expandDecimals(1000, 18).sub(gmxAmount))
 
     expect(await vester.getTotalVested(user0.address)).eq(expandDecimals(1000, 18))
@@ -248,6 +261,7 @@ describe("Vester", function () {
     expect(await vester.pairAmounts(user0.address)).eq(0)
     expect(await vester.lastVestingTimes(user0.address)).eq(blockTime)
 
+    //再挖1天,每天的产出不变
     await increaseTime(provider, 24 * 60 * 60)
     await mineBlock(provider)
 
@@ -255,20 +269,31 @@ describe("Vester", function () {
     expect(await vester.claimable(user0.address)).gt("2730000000000000000") // 1000 / 365 => ~2.739
     expect(await vester.claimable(user0.address)).lt("2750000000000000000")
 
+    console.log("vester balance3.0",ethers.utils.formatUnits(await vester.balanceOf(user0.address)))
+
+    //再增加500质押
     await esGmx.mint(user0.address, expandDecimals(500, 18))
     await esGmx.connect(user0).approve(vester.address, expandDecimals(500, 18))
     await vester.connect(user0).deposit(expandDecimals(500, 18))
+    console.log("vester balance4.0",ethers.utils.formatUnits(await vester.balanceOf(user0.address)))
 
     await increaseTime(provider, 24 * 60 * 60)
     await mineBlock(provider)
 
+    //前一天是1000/365,加完500后又挖了一天是1500/365
     expect(await vester.claimable(user0.address)).gt("6840000000000000000") // 1000 / 365 + 1500 / 365 => 6.849
     expect(await vester.claimable(user0.address)).lt("6860000000000000000")
 
     expect(await esGmx.balanceOf(user0.address)).eq(0)
     expect(await gmx.balanceOf(user0.address)).eq(gmxAmount)
+    
+    console.log("add esgmx,use0 gmx balance:",ethers.utils.formatUnits(await gmx.balanceOf(user0.address),18))
 
+    console.log("user0 before withdraw,vester balance",ethers.utils.formatUnits(await vester.balanceOf(user0.address)))
+    console.log("vester balance5.0",ethers.utils.formatUnits(await vester.balanceOf(user0.address)))
+    //提现后,原有的存款取出来了
     await vester.connect(user0).withdraw()
+    console.log("add esgmx,use0 gmx balance:",ethers.utils.formatUnits(await gmx.balanceOf(user0.address),18))
 
     expect(await esGmx.balanceOf(user0.address)).gt(expandDecimals(989, 18))
     expect(await esGmx.balanceOf(user0.address)).lt(expandDecimals(990, 18))
@@ -285,7 +310,11 @@ describe("Vester", function () {
 
     await esGmx.connect(user0).approve(vester.address, expandDecimals(1000, 18))
     await esGmx.mint(user0.address, expandDecimals(1000, 18))
+    console.log("esGms value user0",ethers.utils.formatUnits(await esGmx.balanceOf(user0.address)))
+    //再充1000
+    console.log("user0 vester balance",ethers.utils.formatUnits(await vester.balanceOf(user0.address)))
     await vester.connect(user0).deposit(expandDecimals(1000, 18))
+    console.log("after deposit,user0 vester balance",ethers.utils.formatUnits(await vester.balanceOf(user0.address)))
     blockTime = await getBlockTime(provider)
 
     await increaseTime(provider, 24 * 60 * 60)
@@ -481,16 +510,19 @@ describe("Vester", function () {
   })
 
   it("handles pairing", async () => {
+    //sGMX
     stakedGmxTracker = await deployContract("RewardTracker", ["Staked GMX", "sGMX"])
     stakedGmxDistributor = await deployContract("RewardDistributor", [esGmx.address, stakedGmxTracker.address])
     await stakedGmxTracker.initialize([gmx.address, esGmx.address], stakedGmxDistributor.address)
     await stakedGmxDistributor.updateLastDistributionTime()
 
+    //sbGMX
     bonusGmxTracker = await deployContract("RewardTracker", ["Staked + Bonus GMX", "sbGMX"])
     bonusGmxDistributor = await deployContract("BonusDistributor", [bnGmx.address, bonusGmxTracker.address])
     await bonusGmxTracker.initialize([stakedGmxTracker.address], bonusGmxDistributor.address)
     await bonusGmxDistributor.updateLastDistributionTime()
 
+    //sbfGMX
     feeGmxTracker = await deployContract("RewardTracker", ["Staked + Bonus + Fee GMX", "sbfGMX"])
     feeGmxDistributor = await deployContract("RewardDistributor", [eth.address, feeGmxTracker.address])
     await feeGmxTracker.initialize([bonusGmxTracker.address, bnGmx.address], feeGmxDistributor.address)

@@ -77,7 +77,7 @@ contract Vault is ReentrancyGuard, IVault {
     bool public override inManagerMode = false; //manager模式,XJCH_True
     bool public override inPrivateLiquidationMode = false; //管理员流动性模式
 
-    uint256 public override maxGasPrice; //最大gas价格
+    uint256 public override maxGasPrice; //最大gas价格,超过会执行失败,让用户降低损失
 
     mapping (address => mapping (address => bool)) public override approvedRouters; //router集合
     mapping (address => bool) public override isLiquidator; //提供流动性集合
@@ -273,7 +273,6 @@ contract Vault is ReentrancyGuard, IVault {
 
     //设置管理员,GmxTimelock
     function setManager(address _manager, bool _isManager) external override {
-        console.log("abc");
         _onlyGov();
         isManager[_manager] = _isManager;
     }
@@ -1188,6 +1187,9 @@ contract Vault is ReentrancyGuard, IVault {
     // 6. initialAmount is close to targetAmount, action reduces balance largely => low tax
     // 7. initialAmount is above targetAmount, nextAmount is below targetAmount and vice versa
     // 8. a large swap should have similar fees as the same trade split into multiple smaller swaps
+    // 获取手续费率,买u会比卖u高一些
+    // 当初始金额与目标金额很接近时,买的手续费会低,卖的手续费会高一些
+    // 当初始金额与目标金额很远时,买的手续费会高,卖的手续费会低一些
     function getFeeBasisPoints(address _token, uint256 _usdgDelta, uint256 _feeBasisPoints, uint256 _taxBasisPoints, bool _increment) public override view returns (uint256) {
         return vaultUtils.getFeeBasisPoints(_token, _usdgDelta, _feeBasisPoints, _taxBasisPoints, _increment);
     }

@@ -11,16 +11,17 @@ import "./interfaces/IRewardDistributor.sol";
 import "./interfaces/IRewardTracker.sol";
 import "../access/Governable.sol";
 
+//奖励分发
 contract RewardDistributor is IRewardDistributor, ReentrancyGuard, Governable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address public override rewardToken;
-    uint256 public override tokensPerInterval;
-    uint256 public lastDistributionTime;
-    address public rewardTracker;
+    address public override rewardToken;//奖励token
+    uint256 public override tokensPerInterval;//每秒的token数量
+    uint256 public lastDistributionTime;//上一次更新时间
+    address public rewardTracker; //tracker
 
-    address public admin;
+    address public admin;   //admin
 
     event Distribute(uint256 amount);
     event TokensPerIntervalChange(uint256 amount);
@@ -45,10 +46,12 @@ contract RewardDistributor is IRewardDistributor, ReentrancyGuard, Governable {
         IERC20(_token).safeTransfer(_account, _amount);
     }
 
+    //设置最近更新时间
     function updateLastDistributionTime() external onlyAdmin {
         lastDistributionTime = block.timestamp;
     }
 
+    //设置每个间隔的token奖励
     function setTokensPerInterval(uint256 _amount) external onlyAdmin {
         require(lastDistributionTime != 0, "RewardDistributor: invalid lastDistributionTime");
         IRewardTracker(rewardTracker).updateRewards();
@@ -56,6 +59,7 @@ contract RewardDistributor is IRewardDistributor, ReentrancyGuard, Governable {
         emit TokensPerIntervalChange(_amount);
     }
 
+    //计算下一个间隔奖励
     function pendingRewards() public view override returns (uint256) {
         if (block.timestamp == lastDistributionTime) {
             return 0;
@@ -65,6 +69,7 @@ contract RewardDistributor is IRewardDistributor, ReentrancyGuard, Governable {
         return tokensPerInterval.mul(timeDiff);
     }
 
+    //从当前地址将rewardToken转到tracker
     function distribute() external override returns (uint256) {
         require(msg.sender == rewardTracker, "RewardDistributor: invalid msg.sender");
         uint256 amount = pendingRewards();

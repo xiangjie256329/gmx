@@ -45,6 +45,7 @@ contract StakedGlpMigrator is Governable {
         _transfer(sender, _recipient, _amount);
     }
 
+    //解除自己的stakedGlpTracker和feeGlpTracker质押,质押到接收者账户
     function _transfer(address _sender, address _recipient, uint256 _amount) private {
         require(isEnabled, "StakedGlpMigrator: not enabled");
         require(_sender != address(0), "StakedGlpMigrator: transfer from the zero address");
