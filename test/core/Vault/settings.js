@@ -43,10 +43,12 @@ describe("Vault.settings", function () {
     const contracts = await initVault(vault, router, usdg, vaultPriceFeed)
     vaultUtils = contracts.vaultUtils
 
+    //放bnb产出usdg
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
 
     await yieldTracker0.setDistributor(distributor0.address)
+    //每秒奖励1000,无小数位数
     await distributor0.setDistribution([yieldTracker0.address], [1000], [bnb.address])
 
     await bnb.mint(distributor0.address, 5000)
@@ -469,6 +471,9 @@ describe("Vault.settings", function () {
     await vault.setTokenConfig(...getBnbConfig(bnb, bnbPriceFeed))
     await bnb.mint(user0.address, 100)
     await bnb.connect(user0).transfer(vault.address, 100)
+    console.log("manager mode:",await vault.inManagerMode())
+    console.log("setUsdgAmount:",await vault.isManager(user0.address))
+    console.log("user0:",user0.address)
     await vault.connect(user0).buyUSDG(bnb.address, user1.address)
 
     expect(await vault.usdgAmounts(bnb.address)).eq(29700)
@@ -496,6 +501,7 @@ describe("Vault.settings", function () {
 
     expect(await bnb.balanceOf(vault.address)).eq(1000)
     expect(await bnb.balanceOf(user1.address)).eq(0)
+    //把钱转出来
     await vault.connect(user0).upgradeVault(user1.address, bnb.address, 1000)
     expect(await bnb.balanceOf(vault.address)).eq(0)
     expect(await bnb.balanceOf(user1.address)).eq(1000)
