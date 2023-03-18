@@ -56,16 +56,21 @@ describe("Vault.fundingRates", function () {
   })
 
   it("funding rate", async () => {
+    //dai 喂1
     await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
     await vault.setTokenConfig(...getDaiConfig(dai, daiPriceFeed))
 
+    //btc 4W
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
     await vault.setTokenConfig(...getBtcConfig(btc, btcPriceFeed))
 
+    //最近喂价4.1W
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(41000))
+    //最近喂价4W
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
 
     await btc.mint(user1.address, expandDecimals(1, 8))
+    //往资金池转0.0025
     await btc.connect(user1).transfer(vault.address, 250000) // 0.0025 BTC => 100 USD
     await vault.buyUSDG(btc.address, user1.address)
 
