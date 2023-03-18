@@ -320,56 +320,76 @@ contract RewardTracker is IERC20, ReentrancyGuard, IRewardTracker, Governable {
 
     //更新某个账户的奖励,同时会把奖励金额从distribute转到当前合约地址
     function _updateRewards(address _account) private {
-        //distribute去将收益转到当前track地址
+        //distribute去将收益转到当前track地址,100
         uint256 blockReward = IRewardDistributor(distributor).distribute();
 
         uint256 supply = totalSupply;
         //计算每个token的收益
+        //cumulativeRewardPerToken 第1次 0.1
+        //第2次 0.2
+        //第3次 0.
         uint256 _cumulativeRewardPerToken = cumulativeRewardPerToken;
         if (supply > 0 && blockReward > 0) {
             //_cumulativeRewardPerToken = _cumulativeRewardPerToken + blockReward*PRECISION/supply
+            //
             _cumulativeRewardPerToken = _cumulativeRewardPerToken.add(blockReward.mul(PRECISION).div(supply));
             cumulativeRewardPerToken = _cumulativeRewardPerToken;
         }
 
         // cumulativeRewardPerToken can only increase
         // so if cumulativeRewardPerToken is zero, it means there are no rewards yet
+        //第1次 0.1
+        //第2次 0.2
         if (_cumulativeRewardPerToken == 0) {
             return;
         }
 
         //如果账户不为0
         if (_account != address(0)) {
+            //例:先质押1000,再质押1000
             //获取账户的质押
-            uint256 stakedAmount = stakedAmounts[_account];
-            //计算前后2次的奖励
+            //第1次 0
+            //第2次 1000
+            //第3次 2000
+            uint256 stakedAmount = stakedAmounts[_account];//1:0
+            //计算前后2次的奖励 1000*0.05
+            //第1次 0
+            //第2次 1000*(0.2-0.1) = 100
+            //第3次 2000*
             uint256 accountReward = stakedAmount.mul(_cumulativeRewardPerToken.sub(previousCumulatedRewardPerToken[_account])).div(PRECISION);
-            //更新总可提现
+            //更新总可提现 _claimableReward = 2000
+            //第1次 0
+            //第2次 100
             uint256 _claimableReward = claimableReward[_account].add(accountReward);
 
+            //第1次 0
+            //第2次 100
             claimableReward[_account] = _claimableReward;
             //更新上一次累积奖励
+            //第1次 0.1
+            //第2次 0.2
             previousCumulatedRewardPerToken[_account] = _cumulativeRewardPerToken;
 
             //如果可提现奖励>0并助质押的数量>0
             if (_claimableReward > 0 && stakedAmounts[_account] > 0) {
                
-
+                //nextCumulativeReward = 1000+1000
+                //第2次 100
                 uint256 nextCumulativeReward = cumulativeRewards[_account].add(accountReward);
 
                 //用户的平均累积金额,以1000个token投到池子共10次领完,第2次开始又来了一个人投了1000个为例
-                //第1次 averageStakedAmounts[addr1] = 1000
+                //第2次 averageStakedAmounts[addr1] = 0 + 1000*100/100
                 /**
                     第2次 
                     nextCumulativeReward = 150
-                    averageStakedAmounts[_account] = 1000*100/150 + 1000*50/150 = 800+333.3 = 1133.3
+                    averageStakedAmounts[_account] = 1000*100/150 + 1000*50/150 = 1666.6
                  */
                 // averageStakedAmounts[_account] * cumulativeRewards[_account] / nextCumulativeReward + 
                 // (stakedAmount*accountReward)/nextCumulativeReward
                 averageStakedAmounts[_account] = averageStakedAmounts[_account].mul(cumulativeRewards[_account]).div(nextCumulativeReward)
                     .add(stakedAmount.mul(accountReward).div(nextCumulativeReward));
 
-                 //更新当前累积奖励
+                 //更新当前累积奖励 1500
                 cumulativeRewards[_account] = nextCumulativeReward;
                 console.log("_updateRewards1.2");
             }
