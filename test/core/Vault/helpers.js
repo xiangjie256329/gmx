@@ -3,7 +3,7 @@ const { toUsd } = require("../../shared/units")
 const { deployContract } = require("../../shared/fixtures")
 
 const errors = [
-  "Vault: zero error",
+  "Vault: zero error",  //0
   "Vault: already initialized",
   "Vault: invalid _maxLeverage",
   "Vault: invalid _taxBasisPoints",
@@ -32,7 +32,7 @@ const errors = [
   "Vault: invalid tokens",
   "Vault: invalid amountIn",
   "Vault: leverage not enabled",
-  "Vault: insufficient collateral for fees",
+  "Vault: insufficient collateral for fees",//29
   "Vault: invalid position.size",
   "Vault: empty position",
   "Vault: position size exceeded",
@@ -93,7 +93,9 @@ async function initVault(vault, router, usdg, priceFeed) {
 async function validateVaultBalance(expect, vault, token, offset) {
   if (!offset) { offset = 0 }
   const poolAmount = await vault.poolAmounts(token.address)
+  console.log("poolAmount:",Number(poolAmount))
   const feeReserve = await vault.feeReserves(token.address)
+  console.log("feeReserve:",Number(feeReserve))
   const balance = await token.balanceOf(vault.address)
   let amount = poolAmount.add(feeReserve)
   expect(balance).gt(0)
@@ -104,7 +106,7 @@ function getBnbConfig(bnb, bnbPriceFeed) {
   return [
     bnb.address, // _token
     18, // _tokenDecimals
-    10000, // _tokenWeight
+    1000, // _tokenWeight
     75, // _minProfitBps,
     0, // _maxUsdgAmount
     false, // _isStable

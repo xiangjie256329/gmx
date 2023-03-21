@@ -9,7 +9,8 @@ import "../core/interfaces/IVault.sol";
 contract BalanceUpdater {
     using SafeMath for uint256;
 
-    //卖掉usdg从金库取出token
+    //转入(poolAmount+fee-balance)的token
+    //转入_usdgAmount的u
     function updateBalance(
         address _vault,
         address _token,

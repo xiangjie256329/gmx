@@ -8,6 +8,7 @@ import "./interfaces/IVault.sol";
 import "./interfaces/IVaultUtils.sol";
 
 import "../access/Governable.sol";
+import "hardhat/console.sol";
 
 contract VaultUtils is IVaultUtils, Governable {
     using SafeMath for uint256;
@@ -139,6 +140,10 @@ contract VaultUtils is IVaultUtils, Governable {
     }
 
     //取转入和转出两者相对较高的费率
+    //如果两边都是稳定币:vault.stableSwapFeeBasisPoints()+vault.stableTaxBasisPoints()
+    //如果不都是稳定币:vault.swapFeeBasisPoints()+vault.taxBasisPoints()
+    // baseBps:stableSwapFeeBasisPoints:0.01%  swapFeeBasisPoints:0.25%
+    // taxBps:stableTaxBasisPoints:0.05% taxBasisPoints:0.6%
     function getSwapFeeBasisPoints(address _tokenIn, address _tokenOut, uint256 _usdgAmount) public override view returns (uint256) {
         //是否两边都是稳定币swap
         bool isStableSwap = vault.stableTokens(_tokenIn) && vault.stableTokens(_tokenOut);
@@ -160,19 +165,27 @@ contract VaultUtils is IVaultUtils, Governable {
     // 7. initialAmount is above targetAmount, nextAmount is below targetAmount and vice versa
     // 8. a large swap should have similar fees as the same trade split into multiple smaller swaps
     // _feeBasisPoints:0.3%,_taxBasisPoints:0.5%
+    //                      _stableTaxBasisPoints
     // 获取手续费率,买u会比卖u高一些
     // 当初始金额与目标金额很接近时,买的手续费会低,卖的手续费会高一些
     // 当初始金额与目标金额很远时,买的手续费会高,卖的手续费会低一些
+    // 1.如果池子没有u,则直接返回 _feeBasisPoints 
+    // 2.如果是买入usdg,_increment:true,则收到:_feeBasisPoints + _taxBasisPoints.mul(averageDiff).div(targetAmount);
+    // 相当于 0.25% + 0.6%*currTargetPercent,越接近target,后面的数据越高,如果一开始买入则相当于只有0.25%的手续费
+    // 3.如果是卖出usdg,卖之前占currTargetPercent:90%,则收取:_feeBasisPoints - _taxBasisPoints * 90%
+    // 结论就是刚开始离target远,铸glp收取:基础费+税(比例小),离的近税(高)
+    // 刚开始离target远,burn glp则收取_feeBasisPoints - 税(比例小)较高,当达到目标40以上的,就不怎么收手续费了
     function getFeeBasisPoints(address _token, uint256 _usdgDelta, uint256 _feeBasisPoints, uint256 _taxBasisPoints, bool _increment) public override view returns (uint256) {
         //目前是True,所以不会直接使用_feeBasisPoints
         if (!vault.hasDynamicFees()) { return _feeBasisPoints; }
 
         //获取当前token池中usdg的数量
         uint256 initialAmount = vault.usdgAmounts(_token);
-        //计算新增后usdg的数量
+        //计算新增后usdg的数量,如果是buy,nextAmount会变大
         uint256 nextAmount = initialAmount.add(_usdgDelta);
-        //buy:true,sell:false.卖的话会计算差值和0比较
+        //_increment buy:true,sell:false.卖的话会计算差值和0比较
         if (!_increment) {
+            // sell usdg,nextAmount 变小
             nextAmount = _usdgDelta > initialAmount ? 0 : initialAmount.sub(_usdgDelta);
         }
 
@@ -182,12 +195,20 @@ contract VaultUtils is IVaultUtils, Governable {
         if (targetAmount == 0) { return _feeBasisPoints; }
 
         //当前u和目标u的差值,abs(initialAmount - targetAmount)
+        console.log("nextAmount:",nextAmount);
+        console.log("initialAmount:",initialAmount);
+        console.log("targetAmount:",targetAmount);
+        //abs(targetAmount-initialAmount)
         uint256 initialDiff = initialAmount > targetAmount ? initialAmount.sub(targetAmount) : targetAmount.sub(initialAmount);
-        //更新后u和目标token对应u的差值,abs(nextAmount-targetAmount)
+        //更新后u和目标token对应u的差值,abs(targetAmount-nextAmount)
         uint256 nextDiff = nextAmount > targetAmount ? nextAmount.sub(targetAmount) : targetAmount.sub(nextAmount);
 
+        console.log("initialDiff:",initialDiff);
+        console.log("nextDiff:",nextDiff);
+
         // action improves relative asset balance,改善资金平衡
-        // 如果是卖掉u
+        // 如果是卖掉u,例:卖之前到目标u的10%,则收取90%
+        // 800 < 1000,收90%
         if (nextDiff < initialDiff) {
             //rebateBps = _taxBasisPoints * initialDiff / targetAmount
             uint256 rebateBps = _taxBasisPoints.mul(initialDiff).div(targetAmount);
@@ -195,14 +216,22 @@ contract VaultUtils is IVaultUtils, Governable {
             return rebateBps > _feeBasisPoints ? 0 : _feeBasisPoints.sub(rebateBps);
         }
 
-        //计算平均diff
+        //如果是买,则计算平均diff
         uint256 averageDiff = initialDiff.add(nextDiff).div(2);
         //买的数量超过现在的数量
         if (averageDiff > targetAmount) {
             averageDiff = targetAmount;
         }
         //taxBps = _taxBasisPoints * averageDiff / targetAmount
+        //1500
+
+        // _taxBasisPoints * 1000/29700
         uint256 taxBps = _taxBasisPoints.mul(averageDiff).div(targetAmount);
+        console.log("_feeBasisPoints:",_feeBasisPoints);
+        console.log("_taxBasisPoints:",_taxBasisPoints);
+        console.log("averageDiff:",averageDiff);
+        console.log("targetAmount:",targetAmount);
+        console.log("taxBps:",taxBps);
         // 返回 _feeBasisPoints + taxBps
         return _feeBasisPoints.add(taxBps);
     }

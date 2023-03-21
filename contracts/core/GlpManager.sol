@@ -284,7 +284,6 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     function _removeLiquidity(address _account, address _tokenOut, uint256 _glpAmount, uint256 _minOut, address _receiver) private returns (uint256) {
         require(_glpAmount > 0, "GlpManager: invalid _glpAmount");
         require(lastAddedAt[_account].add(cooldownDuration) <= block.timestamp, "GlpManager: cooldown duration not yet passed");
-        console.log("_removeLiquidity1.0");
 
         // calculate aum before sellUSDG
         // 使用较低喂价,获取池子中u的总金额
@@ -307,9 +306,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         IERC20(usdg).transfer(address(vault), usdgAmount);
         //卖出usdg换token,但是要交一些token作为手续费,根据token权重,一开始(离targetAmount远)就收的少,越接近targetAmount就收的多
         uint256 amountOut = vault.sellUSDG(_tokenOut, _receiver);
-        console.log("_removeLiquidity1.2");
         require(amountOut >= _minOut, "GlpManager: insufficient output");
-        console.log("_removeLiquidity1.3");
 
         emit RemoveLiquidity(_account, _tokenOut, _glpAmount, aumInUsdg, glpSupply, usdgAmount, amountOut);
 

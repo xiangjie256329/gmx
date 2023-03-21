@@ -70,37 +70,46 @@ describe("Vault.fundingRates", function () {
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
 
     await btc.mint(user1.address, expandDecimals(1, 8))
-    //往资金池转0.0025
+    //往资金池转0.0025 btc
     await btc.connect(user1).transfer(vault.address, 250000) // 0.0025 BTC => 100 USD
+    //购买usdg
     await vault.buyUSDG(btc.address, user1.address)
+
+    console.log("usdg balance:",ethers.utils.formatUnits(await usdg.balanceOf(user1.address),18))
 
     await btc.mint(user0.address, expandDecimals(1, 8))
     await btc.connect(user1).transfer(vault.address, 25000) // 0.00025 BTC => 10 USD
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(110), true))
       .to.be.revertedWith("Vault: reserve exceeds pool")
 
+    console.log("start increasePosition")
+    console.log("vault.guaranteedUsd(btc.address):",ethers.utils.formatUnits(await vault.guaranteedUsd(btc.address),18))
     await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
+    console.log("vault.guaranteedUsd(btc.address):",ethers.utils.formatUnits(await vault.guaranteedUsd(btc.address),18))
 
     let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
     expect(position[0]).eq(toUsd(90)) // size
     expect(position[1]).eq(toUsd(9.91)) // collateral, 10 - 90 * 0.1%
     expect(position[2]).eq(toNormalizedPrice(41000)) // averagePrice
-    expect(position[3]).eq(0) // entryFundingRate
+    expect(position[3]).eq(0) // entryFundingRate  //没有开仓,所以是0
     expect(position[4]).eq(225000) // reserveAmount, 0.00225 * 40,000 => 90
 
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(45100))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(46100))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(47100))
 
+    //获取杠杆倍数
     let leverage = await vault.getPositionLeverage(user0.address, btc.address, btc.address, true)
     expect(leverage).eq(90817) // ~9X leverage
 
+    //手续费
     expect(await vault.feeReserves(btc.address)).eq(969)
     expect(await vault.reservedAmounts(btc.address)).eq(225000)
-    expect(await vault.guaranteedUsd(btc.address)).eq(toUsd(80.09))
+    expect(await vault.guaranteedUsd(btc.address)).eq(toUsd(80.09))//头寸:90+手续费:0.9-成本:10
     expect(await vault.poolAmounts(btc.address)).eq(274250 - 219)
     expect(await btc.balanceOf(user2.address)).eq(0)
 
+    //减少3u保证金,并将头寸调整到50
     const tx0 = await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(3), toUsd(50), true, user2.address)
     await reportGasUsed(provider, tx0, "decreasePosition gas used")
 
@@ -125,6 +134,7 @@ describe("Vault.fundingRates", function () {
     await increaseTime(provider, 8 * 60 * 60 + 10)
     await mineBlock(provider)
 
+    //平掉多单
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(3), 0, true, user2.address))
       .to.be.revertedWith("Vault: liquidation fees exceed collateral")
 

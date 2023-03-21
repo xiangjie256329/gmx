@@ -32,6 +32,7 @@ describe("Vault.liquidateLongPosition", function () {
   let glp
 
   beforeEach(async () => {
+    
     bnb = await deployContract("Token", [])
     bnbPriceFeed = await deployContract("PriceFeed", [])
 

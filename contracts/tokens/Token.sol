@@ -52,8 +52,8 @@ contract Token is IERC20 {
      * construction.
      */
     constructor() public {
-        _name = "Token";
-        _symbol = "TOKEN";
+        _name = "Dai";
+        _symbol = "DAI";
         _decimals = 18;
     }
 

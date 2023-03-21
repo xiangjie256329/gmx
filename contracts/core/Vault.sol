@@ -19,10 +19,10 @@ contract Vault is ReentrancyGuard, IVault {
 
     struct Position {
         uint256 size; //头寸
-        uint256 collateral; //扣除手续费后抵押品的价值
+        uint256 collateral; //扣除手续费后u的价值
         uint256 averagePrice;  //抵押物均价
         uint256 entryFundingRate; //入场资金利率
-        uint256 reserveAmount; //开仓头存换算成抵押物代币的数量
+        uint256 reserveAmount; //开仓头寸换算成抵押物代币的数量
         int256 realisedPnl; //已实现收益,有可能是负数
         uint256 lastIncreasedTime; //最新增加时间
     }
@@ -61,7 +61,7 @@ contract Vault is ReentrancyGuard, IVault {
     uint256 public override mintBurnFeeBasisPoints = 30; // 0.3% mint u 销毁费基点 XJCH_25,0.25%
     uint256 public override swapFeeBasisPoints = 30; // 0.3% swap费基点
     uint256 public override stableSwapFeeBasisPoints = 4; // 0.04% 稳定币基点 XJCH_1
-    uint256 public override marginFeeBasisPoints = 10; // 0.1% 保证金基点
+    uint256 public override marginFeeBasisPoints = 10; // 0.1% 开仓费,5%
 
     uint256 public override minProfitTime; //最小赢利时间,有赢利但是赢利很小,在minProfitTime有可能不显示,但是超过这个时间多小都会显示
     bool public override hasDynamicFees = false; //有动态费
@@ -475,8 +475,11 @@ contract Vault is ReentrancyGuard, IVault {
     function directPoolDeposit(address _token) external override nonReentrant {
         //先判断token是否在白名单
         _validate(whitelistedTokens[_token], 14);
+        console.log("directPoolDeposit");
         //获取转入金额
         uint256 tokenAmount = _transferIn(_token);
+        console.log("directPoolDeposit1");
+
         //验证金额是否大于0
         _validate(tokenAmount > 0, 15);
         //token pool增加金额
@@ -485,6 +488,7 @@ contract Vault is ReentrancyGuard, IVault {
     }
 
     //使用token当前的价格mint u,但是要交一些token作为手续费,根据token权重,一开始(离targetAmount远)就收的多,越接近targetAmount就收的少
+
     function buyUSDG(address _token, address _receiver) external override nonReentrant returns (uint256) {
         //验证交易的发起者是不是GmxTimelock
         _validateManager();
@@ -515,10 +519,12 @@ contract Vault is ReentrancyGuard, IVault {
         uint256 feeBasisPoints = vaultUtils.getBuyUsdgFeeBasisPoints(_token, usdgAmount);
         //扣除税后的token数量
         uint256 amountAfterFees = _collectSwapFees(_token, tokenAmount, feeBasisPoints);
+        console.log("amountAfterFees:",amountAfterFees);
         //计算出mint的u的数量
         uint256 mintAmount = amountAfterFees.mul(price).div(PRICE_PRECISION);
         //单位换算
         mintAmount = adjustForDecimals(mintAmount, _token, usdg);
+        console.log("mintAmount:",mintAmount);
 
         //增加usdgAmounts池子token对应的u数量
         _increaseUsdgAmount(_token, mintAmount);
@@ -658,6 +664,7 @@ contract Vault is ReentrancyGuard, IVault {
 
         //根据_account,_collateralToken,_indexToken,_isLong计算hash
         bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);
+
         Position storage position = positions[key];
 
         //做多取indexToken较高喂价,做空取indexToken较低喂价
@@ -713,8 +720,10 @@ contract Vault is ReentrancyGuard, IVault {
             // since (position.size - position.collateral) would have increased by `fee`
             
             // 更新未平仓杠杆对应的u数量,_sizeDelta+fee
+            console.log("g_sizeDelta:",_sizeDelta);
+            console.log("g_fee:",fee);
             _increaseGuaranteedUsd(_collateralToken, _sizeDelta.add(fee));
-            // 减少未平仓杠杆对应的u数量
+            // 减少开仓的成本
             _decreaseGuaranteedUsd(_collateralToken, collateralDeltaUsd);
             // treat the deposited collateral as part of the pool
             // 增加抵押token数量
@@ -755,6 +764,7 @@ contract Vault is ReentrancyGuard, IVault {
 
         //获取position
         bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);
+        
         Position storage position = positions[key];
         //头寸是否大于0
         _validate(position.size > 0, 31);
@@ -1022,7 +1032,7 @@ contract Vault is ReentrancyGuard, IVault {
             return;
         }
 
-        //获取当前资金费率,未平仓的token在池子占比*系数
+        //获取当前资金费率,未平仓的token在池子占比*系数(100),资金使用率
         uint256 fundingRate = getNextFundingRate(_collateralToken);
         //累加资金费率
         cumulativeFundingRates[_collateralToken] = cumulativeFundingRates[_collateralToken].add(fundingRate);
@@ -1033,6 +1043,7 @@ contract Vault is ReentrancyGuard, IVault {
     }
 
     //获取当前资金费率,fundingRateFactor * tokenReservedAmounts / tokenPoolAmount,未平仓的token占比
+    //资金使用率,fundingRateFactor:100,stableFundingRateFactor:100
     function getNextFundingRate(address _token) public override view returns (uint256) {
         if (lastFundingTimes[_token].add(fundingInterval) > block.timestamp) { return 0; }
 
@@ -1341,13 +1352,18 @@ contract Vault is ReentrancyGuard, IVault {
         return afterFeeAmount;
     }
 
-    //收集margin费
+    //头寸的5% + 变化的资金利率(当前累积的资金利用率 - 进场的资金利用率)*头寸 / 1000000
     function _collectMarginFees(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta, uint256 _size, uint256 _entryFundingRate) private returns (uint256) {
-        //加仓费
+        //加仓费,头寸的5%
         uint256 feeUsd = getPositionFee(_account, _collateralToken, _indexToken, _isLong, _sizeDelta);
 
-        //融资费用:变化的资金利率*头寸
+        console.log("feeUsd:",feeUsd);
+        console.log("_sizeDelta:",_sizeDelta);
+        
+        //融资费用:当前累积的资金利用率 - 进场的资金利用率  变化的资金利率*头寸 / 1000000
         uint256 fundingFee = getFundingFee(_account, _collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
+
+        console.log("fundingFee:",fundingFee);
 
         //总费用
         feeUsd = feeUsd.add(fundingFee);
@@ -1365,7 +1381,9 @@ contract Vault is ReentrancyGuard, IVault {
     //用当前金额-前一次的金额,作为本次转入的金额
     function _transferIn(address _token) private returns (uint256) {
         uint256 prevBalance = tokenBalances[_token];
+        console.log("prevBalance:",prevBalance);
         uint256 nextBalance = IERC20(_token).balanceOf(address(this));
+        console.log("nextBalance:",nextBalance);
         tokenBalances[_token] = nextBalance;
 
         return nextBalance.sub(prevBalance);
@@ -1445,7 +1463,7 @@ contract Vault is ReentrancyGuard, IVault {
         emit DecreaseReservedAmount(_token, _amount);
     }
 
-    //增加未平仓杠杆对应u的金额
+    //增加未平仓杠杆对应u的金额,相当于头寸-成本+手续费
     function _increaseGuaranteedUsd(address _token, uint256 _usdAmount) private {
         guaranteedUsd[_token] = guaranteedUsd[_token].add(_usdAmount);
         emit IncreaseGuaranteedUsd(_token, _usdAmount);

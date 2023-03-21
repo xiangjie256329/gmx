@@ -76,6 +76,7 @@ describe("Vault.depositCollateral", function () {
 
     await btc.connect(user0).transfer(vault.address, 117500 - 1) // 0.001174 BTC => 47
 
+    
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(47), true))
       .to.be.revertedWith("Vault: reserve exceeds pool")
 
