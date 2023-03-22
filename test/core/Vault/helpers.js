@@ -1,5 +1,5 @@
 const { expandDecimals } = require("../../shared/utilities")
-const { toUsd } = require("../../shared/units")
+const { toUsd,toAmount } = require("../../shared/units")
 const { deployContract } = require("../../shared/fixtures")
 
 const errors = [
@@ -118,7 +118,7 @@ function getEthConfig(eth, ethPriceFeed) {
     18, // _tokenDecimals
     10000, // _tokenWeight
     75, // _minProfitBps
-    0, // _maxUsdgAmount
+    "150000000000000000000000000", // _maxUsdgAmount
     false, // _isStable
     true // _isShortable
   ]
@@ -130,7 +130,7 @@ function getBtcConfig(btc, btcPriceFeed) {
     8, // _tokenDecimals
     10000, // _tokenWeight
     0, // _minProfitBps
-    95000000000000000000000000, // _maxUsdgAmount
+    "95000000000000000000000000", // _maxUsdgAmount
     false, // _isStable
     true // _isShortable
   ]
@@ -142,7 +142,7 @@ function getDaiConfig(dai, daiPriceFeed) {
     18, // _tokenDecimals
     10000, // _tokenWeight
     0, // _minProfitBps
-    35000000000000000000000000, // _maxUsdgAmount
+    "35000000000000000000000000", // _maxUsdgAmount
     true, // _isStable
     false // _isShortable
   ]
