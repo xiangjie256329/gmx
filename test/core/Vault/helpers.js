@@ -116,7 +116,7 @@ function getEthConfig(eth, ethPriceFeed) {
   return [
     eth.address, // _token
     18, // _tokenDecimals
-    10000, // _tokenWeight
+    20000, // _tokenWeight
     75, // _minProfitBps
     "150000000000000000000000000", // _maxUsdgAmount
     false, // _isStable
@@ -128,7 +128,7 @@ function getBtcConfig(btc, btcPriceFeed) {
   return [
     btc.address, // _token
     8, // _tokenDecimals
-    10000, // _tokenWeight
+    20000, // _tokenWeight
     0, // _minProfitBps
     "95000000000000000000000000", // _maxUsdgAmount
     false, // _isStable
@@ -140,7 +140,7 @@ function getDaiConfig(dai, daiPriceFeed) {
   return [
     dai.address, // _token
     18, // _tokenDecimals
-    10000, // _tokenWeight
+    20000, // _tokenWeight
     0, // _minProfitBps
     "35000000000000000000000000", // _maxUsdgAmount
     true, // _isStable
