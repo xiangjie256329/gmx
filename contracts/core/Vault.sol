@@ -475,10 +475,8 @@ contract Vault is ReentrancyGuard, IVault {
     function directPoolDeposit(address _token) external override nonReentrant {
         //先判断token是否在白名单
         _validate(whitelistedTokens[_token], 14);
-        console.log("directPoolDeposit");
         //获取转入金额
         uint256 tokenAmount = _transferIn(_token);
-        console.log("directPoolDeposit1");
 
         //验证金额是否大于0
         _validate(tokenAmount > 0, 15);
@@ -519,12 +517,10 @@ contract Vault is ReentrancyGuard, IVault {
         uint256 feeBasisPoints = vaultUtils.getBuyUsdgFeeBasisPoints(_token, usdgAmount);
         //扣除税后的token数量
         uint256 amountAfterFees = _collectSwapFees(_token, tokenAmount, feeBasisPoints);
-        console.log("amountAfterFees:",amountAfterFees);
         //计算出mint的u的数量
         uint256 mintAmount = amountAfterFees.mul(price).div(PRICE_PRECISION);
         //单位换算
         mintAmount = adjustForDecimals(mintAmount, _token, usdg);
-        console.log("mintAmount:",mintAmount);
 
         //增加usdgAmounts池子token对应的u数量
         _increaseUsdgAmount(_token, mintAmount);
@@ -649,8 +645,15 @@ contract Vault is ReentrancyGuard, IVault {
         return amountOutAfterFees;
     }
 
+    function getPositionFee1(uint256 _sizeDelta) public view returns (uint256) {
+        if (_sizeDelta == 0) { return 0; }
+        uint256 afterFeeUsd = _sizeDelta.mul(BASIS_POINTS_DIVISOR.sub(marginFeeBasisPoints)).div(BASIS_POINTS_DIVISOR);
+        return _sizeDelta.sub(afterFeeUsd);
+    }
+
     //开仓
     function increasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong) external override nonReentrant {
+        console.log("increase order2");
         _validate(isLeverageEnabled, 28);
         _validateGasPrice();
         _validateRouter(_account);
@@ -720,8 +723,6 @@ contract Vault is ReentrancyGuard, IVault {
             // since (position.size - position.collateral) would have increased by `fee`
             
             // 更新未平仓杠杆对应的u数量,_sizeDelta+fee
-            console.log("g_sizeDelta:",_sizeDelta);
-            console.log("g_fee:",fee);
             _increaseGuaranteedUsd(_collateralToken, _sizeDelta.add(fee));
             // 减少开仓的成本
             _decreaseGuaranteedUsd(_collateralToken, collateralDeltaUsd);
@@ -744,6 +745,7 @@ contract Vault is ReentrancyGuard, IVault {
             _increaseGlobalShortSize(_indexToken, _sizeDelta);
         }
 
+        console.log("Fee1:",fee);
         emit IncreasePosition(key, _account, _collateralToken, _indexToken, collateralDeltaUsd, _sizeDelta, _isLong, price, fee);
         emit UpdatePosition(key, position.size, position.collateral, position.averagePrice, position.entryFundingRate, position.reserveAmount, position.realisedPnl, price);
     }
@@ -1355,6 +1357,7 @@ contract Vault is ReentrancyGuard, IVault {
     //头寸的5% + 变化的资金利率(当前累积的资金利用率 - 进场的资金利用率)*头寸 / 1000000
     function _collectMarginFees(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta, uint256 _size, uint256 _entryFundingRate) private returns (uint256) {
         //加仓费,头寸的5%
+        //uint256 feeUsd = getPositionFee1(_sizeDelta);
         uint256 feeUsd = getPositionFee(_account, _collateralToken, _indexToken, _isLong, _sizeDelta);
 
         console.log("feeUsd:",feeUsd);
@@ -1381,9 +1384,7 @@ contract Vault is ReentrancyGuard, IVault {
     //用当前金额-前一次的金额,作为本次转入的金额
     function _transferIn(address _token) private returns (uint256) {
         uint256 prevBalance = tokenBalances[_token];
-        console.log("prevBalance:",prevBalance);
         uint256 nextBalance = IERC20(_token).balanceOf(address(this));
-        console.log("nextBalance:",nextBalance);
         tokenBalances[_token] = nextBalance;
 
         return nextBalance.sub(prevBalance);

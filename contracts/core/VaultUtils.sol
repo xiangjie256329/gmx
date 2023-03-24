@@ -114,6 +114,7 @@ contract VaultUtils is IVaultUtils, Governable {
     function getPositionFee(address /* _account */, address /* _collateralToken */, address /* _indexToken */, bool /* _isLong */, uint256 _sizeDelta) public override view returns (uint256) {
         if (_sizeDelta == 0) { return 0; }
         //_sizeDelta*(10000-500)/10000
+        console.log("vault.marginFeeBasisPoints():",vault.marginFeeBasisPoints());
         uint256 afterFeeUsd = _sizeDelta.mul(BASIS_POINTS_DIVISOR.sub(vault.marginFeeBasisPoints())).div(BASIS_POINTS_DIVISOR);
         return _sizeDelta.sub(afterFeeUsd);
     }

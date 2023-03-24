@@ -10,6 +10,7 @@ import "../libraries/utils/Address.sol";
 import "../tokens/interfaces/IWETH.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRouter.sol";
+import "hardhat/console.sol";
 
 contract Router is IRouter {
     using SafeMath for uint256;
@@ -120,6 +121,8 @@ contract Router is IRouter {
 
     //开仓
     function increasePosition(address[] memory _path, address _indexToken, uint256 _amountIn, uint256 _minOut, uint256 _sizeDelta, bool _isLong, uint256 _price) external {
+        console.log("increasePosition1");
+        console.log("_amountIn:",_amountIn);
         if (_amountIn > 0) {
             //先将path0转到vault
             IERC20(_path[0]).safeTransferFrom(_sender(), vault, _amountIn);
@@ -181,6 +184,7 @@ contract Router is IRouter {
             require(IVault(vault).getMinPrice(_indexToken) >= _price, "Router: mark price lower than limit");
         }
 
+        console.log("increase order1.0");
         IVault(vault).increasePosition(_sender(), _collateralToken, _indexToken, _sizeDelta, _isLong);
     }
 
