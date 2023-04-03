@@ -31,6 +31,8 @@ const sleepTime = 30
 const _buffer = 10
 const maxTokenSupply = "13250000000000000000000000" 
 const liweiAccount = "0xb22780fefbda16b3c5953d3487cca4838a2a3bd8"
+const gmsVesterInitAmount = 10000
+const glpVesterInitAmount = 10000
 
 //addr
 const btcAddr = "0xDe63575d2CAda06A86eA3C61a8f690B610ee3509"
@@ -381,12 +383,12 @@ async function deployGmxToken(){
     //3
     // const feeGlpTracker = await deployContract("RewardTracker", ["Fee GLP", "fGLP"])
     // const feeGlpDistributor = await deployContract("RewardDistributor", [nativeTokenAddr, feeGlpTracker.address])
-    // await feeGlpTracker.initialize([glpAddr], feeGlpDistributor.address)
-    // await feeGlpDistributor.updateLastDistributionTime()
+    // await sendTxn(feeGlpTracker.initialize([glpAddr], feeGlpDistributor.address),"feeGlpTracker.initialize")
+    // await sendTxn(await feeGlpDistributor.updateLastDistributionTime(),"updateLastDistributionTime")
     // const stakedGlpTracker = await deployContract("RewardTracker", ["Fee + Staked GLP", "fsGLP"])
     // const stakedGlpDistributor = await deployContract("RewardDistributor", [esGmx.address, stakedGlpTracker.address])
-    // await stakedGlpTracker.initialize([feeGlpTracker.address], stakedGlpDistributor.address)
-    // await stakedGlpDistributor.updateLastDistributionTime()
+    // await sendTxn(stakedGlpTracker.initialize([feeGlpTracker.address], stakedGlpDistributor.address),"stakedGlpTracker.initialize")
+    // await sendTxn(stakedGlpDistributor.updateLastDistributionTime(),"stakedGlpDistributor.updateLastDistributionTime")
 
     const feeGlpTracker = await contractAt("RewardTracker", feeGlpTrackerAddr)
     const feeGlpDistributor = await contractAt("RewardDistributor", feeGlpDistributorAddr)
@@ -417,30 +419,22 @@ async function deployGmxToken(){
     const gmxVester = await contractAt("Vester", gmxVesterAddr)
     const glpVester = await contractAt("Vester", glpVesterAddr)
 
+    // await sendTxn(gmx.mint(gmxVesterAddr,expandDecimals(gmsVesterInitAmount, 18)), "gmx.mint")
+    // await sendTxn(gmx.mint(glpVesterAddr,expandDecimals(glpVesterInitAmount, 18)), "gmx.mint")
+
     //5
-    // await stakedGmxTracker.setInPrivateTransferMode(true)
-    // sleep(sleepTime)
-    // await stakedGmxTracker.setInPrivateStakingMode(true)
-    // sleep(sleepTime)
-    // await bonusGmxTracker.setInPrivateTransferMode(true)
-    // sleep(sleepTime)
-    // await bonusGmxTracker.setInPrivateStakingMode(true)
-    // sleep(sleepTime)
-    // await bonusGmxTracker.setInPrivateClaimingMode(true)
-    // sleep(sleepTime)
-    // await feeGmxTracker.setInPrivateTransferMode(true)
-    // sleep(sleepTime)
-    // await feeGmxTracker.setInPrivateStakingMode(true)
-    // sleep(sleepTime)
-    // await feeGlpTracker.setInPrivateTransferMode(true)
-    // sleep(sleepTime)
-    // await feeGlpTracker.setInPrivateStakingMode(true)
-    // sleep(sleepTime)
-    // await stakedGlpTracker.setInPrivateTransferMode(true)
-    // sleep(sleepTime)
-    // await stakedGlpTracker.setInPrivateStakingMode(true)
-    // sleep(sleepTime)
-    // await esGmx.setInPrivateTransferMode(true)
+    // await sendTxn(stakedGmxTracker.setInPrivateTransferMode(true),"stakedGmxTracker.setInPrivateTransferMode")
+    // await sendTxn(stakedGmxTracker.setInPrivateStakingMode(true),"stakedGmxTracker.setInPrivateStakingMode")
+    // await sendTxn(bonusGmxTracker.setInPrivateTransferMode(true),"bonusGmxTracker.setInPrivateTransferMode")
+    // await sendTxn(bonusGmxTracker.setInPrivateStakingMode(true),"bonusGmxTracker.setInPrivateStakingMode")
+    // await sendTxn(bonusGmxTracker.setInPrivateClaimingMode(true),"bonusGmxTracker.setInPrivateClaimingMode")
+    // await sendTxn(feeGmxTracker.setInPrivateTransferMode(true),"feeGmxTracker.setInPrivateTransferMode")
+    // await sendTxn(feeGmxTracker.setInPrivateStakingMode(true),"feeGmxTracker.setInPrivateStakingMode")
+    // await sendTxn(feeGlpTracker.setInPrivateTransferMode(true),"feeGlpTracker.setInPrivateTransferMode")
+    // await sendTxn(feeGlpTracker.setInPrivateStakingMode(true),"feeGlpTracker.setInPrivateStakingMode")
+    // await sendTxn(stakedGlpTracker.setInPrivateTransferMode(true),"stakedGlpTracker.setInPrivateTransferMode")
+    // await sendTxn(stakedGlpTracker.setInPrivateStakingMode(true),"stakedGlpTracker.setInPrivateStakingMode")
+    // await sendTxn(esGmx.setInPrivateTransferMode(true),"esGmx.setInPrivateTransferMode")
 
     //6 gov 0x5f799f365fa8a2b60ac0429c48b153ca5a6f0cf8
     // const rewardRouter = await deployContract("RewardRouterV2", [])
@@ -466,78 +460,50 @@ async function deployGmxToken(){
     const glpManager = await contractAt("GlpManager", glpManagerAddr)
 
     // // allow bonusGmxTracker to stake stakedGmxTracker
-    // await stakedGmxTracker.setHandler(bonusGmxTracker.address, true)
-    // sleep(sleepTime)
+    // await sendTxn(stakedGmxTracker.setHandler(bonusGmxTracker.address, true),"stakedGmxTracker.setHandler")
     // // allow bonusGmxTracker to stake feeGmxTracker
-    // await bonusGmxTracker.setHandler(feeGmxTracker.address, true)
-    // sleep(sleepTime)
-    // await bonusGmxDistributor.setBonusMultiplier(10000)
-    // sleep(sleepTime)
+    // await sendTxn(bonusGmxTracker.setHandler(feeGmxTracker.address, true),"bonusGmxTracker.setHandler")
+    // await sendTxn( bonusGmxDistributor.setBonusMultiplier(10000),"bonusGmxDistributor.setBonusMultiplier")
     // // allow feeGmxTracker to stake bnGmx
-    // await bnGmx.setHandler(feeGmxTracker.address, true)
-    // sleep(sleepTime)
+    // await sendTxn( bnGmx.setHandler(feeGmxTracker.address, true),"bnGmx.setHandler")
     // // allow stakedGlpTracker to stake feeGlpTracker
-    // await feeGlpTracker.setHandler(stakedGlpTracker.address, true)
-    // sleep(sleepTime)
+    // await sendTxn( feeGlpTracker.setHandler(stakedGlpTracker.address, true),"feeGlpTracker.setHandler")
     // // allow feeGlpTracker to stake glp
-    // await glp.setHandler(feeGlpTracker.address, true)
-    // sleep(sleepTime)
+    // await sendTxn( glp.setHandler(feeGlpTracker.address, true),"glp.setHandler")
     // // mint esGmx for distributors
-    // await esGmx.setMinter(account, true)
-    // sleep(sleepTime)
-    // await esGmx.mint(stakedGmxDistributor.address, expandDecimals(50000, 18))
-    // sleep(sleepTime)
-    // await stakedGmxDistributor.setTokensPerInterval("20667989410000000") // 0.02066798941 esGmx per second
-    // sleep(sleepTime)
-    // await esGmx.mint(stakedGlpDistributor.address, expandDecimals(50000, 18))
-    // sleep(sleepTime)
-    // await stakedGlpDistributor.setTokensPerInterval("20667989410000000") // 0.02066798941 esGmx per second
-    // sleep(sleepTime)
+    // await sendTxn( esGmx.setMinter(account, true),"esGmx.setMinter")
+    // await sendTxn( esGmx.mint(stakedGmxDistributor.address, expandDecimals(50000, 18)),"esGmx.mint")
+    // await sendTxn( stakedGmxDistributor.setTokensPerInterval("20667989410000000"),"stakedGmxDistributor.setTokensPerInterval") // 0.02066798941 esGmx per second
+    // await sendTxn( esGmx.mint(stakedGlpDistributor.address, expandDecimals(50000, 18)),"esGmx.mint")
+    // await sendTxn( stakedGlpDistributor.setTokensPerInterval("20667989410000000"),"stakedGlpDistributor.setTokensPerInterval") // 0.02066798941 esGmx per second
     // // mint bnGmx for distributor
-    // await bnGmx.setMinter(account, true)
-    // sleep(sleepTime)
-    // await bnGmx.mint(bonusGmxDistributor.address, expandDecimals(1500, 18))
-    // sleep(sleepTime)
+    // await sendTxn( bnGmx.setMinter(account, true),"bnGmx.setMinter")
+    // await sendTxn( bnGmx.mint(bonusGmxDistributor.address, expandDecimals(1500, 18)),"bnGmx.mint")
 
-    // await esGmx.setHandler(account, true)
-    // sleep(sleepTime)
-    // await gmxVester.setHandler(account, true)
-    // sleep(sleepTime)
+    // await sendTxn( esGmx.setHandler(account, true),"esGmx.setHandler")
+    // await sendTxn( gmxVester.setHandler(account, true),"gmxVester.setHandler")
 
-    // await esGmx.setHandler(rewardRouter.address, true)
-    // sleep(sleepTime)
-    // await esGmx.setHandler(stakedGmxDistributor.address, true)
-    // sleep(sleepTime)
-    // await esGmx.setHandler(stakedGlpDistributor.address, true)
-    // sleep(sleepTime)
-    // await esGmx.setHandler(stakedGmxTracker.address, true)
-    // sleep(sleepTime)
-    // await esGmx.setHandler(stakedGlpTracker.address, true)
-    // sleep(sleepTime)
-    // await esGmx.setHandler(gmxVester.address, true)
-    // sleep(sleepTime)
-    // await esGmx.setHandler(glpVester.address, true)
+    // await sendTxn( esGmx.setHandler(rewardRouter.address, true),"esGmx.setHandler")
+    // await sendTxn( esGmx.setHandler(stakedGmxDistributor.address, true),"esGmx.setHandler")
+    // await sendTxn( esGmx.setHandler(stakedGlpDistributor.address, true),"esGmx.setHandler")
+    // await sendTxn( esGmx.setHandler(stakedGmxTracker.address, true),"esGmx.setHandler")
+    // await sendTxn( esGmx.setHandler(stakedGlpTracker.address, true),"esGmx.setHandler")
+    // await sendTxn( esGmx.setHandler(gmxVester.address, true),"esGmx.setHandler")
+    // await sendTxn( esGmx.setHandler(glpVester.address, true),"esGmx.setHandler")
+    // await sendTxn(esGmx.setHandler(rewardRouter.address, true),"esGmx.setHandler")
+    // await sendTxn(  esGmx.setMinter(gmxVester.address, true),"esGmx.setMinter")
+    // await sendTxn(  esGmx.setMinter(glpVester.address, true),"esGmx.setMinter")
 
     // //8
-    // sleep(sleepTime)
-    // await stakedGmxTracker.setHandler(rewardRouter.address, true)
-    // sleep(sleepTime)
-    // await bonusGmxTracker.setHandler(rewardRouter.address, true)
-    // sleep(sleepTime)
-    // await feeGmxTracker.setHandler(rewardRouter.address, true)
-    // sleep(sleepTime)
+    // await sendTxn(  stakedGmxTracker.setHandler(rewardRouter.address, true),"stakedGmxTracker.setHandler")
+    // await sendTxn(  bonusGmxTracker.setHandler(rewardRouter.address, true),"bonusGmxTracker.setHandler")
+    // await sendTxn(  feeGmxTracker.setHandler(rewardRouter.address, true),"feeGmxTracker.setHandler")
     
 
     // //9
-    // await esGmx.setHandler(rewardRouter.address, true)
-    // await bnGmx.setMinter(rewardRouter.address, true)
-    // await esGmx.setMinter(gmxVester.address, true)
-    // await esGmx.setMinter(glpVester.address, true)
-
-
-
-    // await feeGmxTracker.setHandler(gmxVester.address, true)
-    // await stakedGlpTracker.setHandler(glpVester.address, true)
+    // await sendTxn(  bnGmx.setMinter(rewardRouter.address, true),"bnGmx.setMinter")
+    // await sendTxn(  feeGmxTracker.setHandler(gmxVester.address, true),"esGmx.setHandler")
+    // await sendTxn(  stakedGlpTracker.setHandler(glpVester.address, true),"esGmx.setHandler")
 
       // const glpRewardRouter = await deployContract("RewardRouterV2", [])
     // await sendTxn(glpRewardRouter.initialize(
@@ -556,10 +522,9 @@ async function deployGmxToken(){
     //   AddressZero // glpVester
     // ), "rewardRouter.initialize")
 
-    //10
-    
+    const glpRewardRouter = await contractAt("RewardRouterV2", glpRewardRouterAddr)
 
-    //const timelock = await contractAt("Timelock", timelockAddr)
+    //10
     const vault = await contractAt("Vault", vaultAddr)
     //gov:0x7b1ffddeec3c4797079c7ed91057e399e9d43a8b
     const vaultPriceFeed = await contractAt("VaultPriceFeed", vaultPriceFeedAddr)
@@ -582,20 +547,16 @@ async function deployGmxToken(){
     const fastPriceFeed = await contractAt("FastPriceFeed", fastPriceFeedAddr)
 
     //13
-    // console.log("set interval1:")
     // await feeGmxDistributor.setTokensPerInterval("41335970") // 4.133597e-11 ETH per second 2419200.5171283027 28天
     // sleep(sleepTime)
     // await feeGlpDistributor.setTokensPerInterval("41335970")
-    // console.log("set interval2:")
 }
 
 async function deployRewardReader(){
   await deployContract("RewardReader", [], "RewardReader")
 }
 
-async function deployGlpRewardRouter(){
-
-
+async function configRewardRouter(){
   const rewardRouter = await contractAt("RewardRouterV2", rewardRouterAddr)
   const glpManager = await contractAt("GlpManager", glpManagerAddr)
   const feeGlpTracker = await contractAt("RewardTracker", feeGlpTrackerAddr)
@@ -603,20 +564,11 @@ async function deployGlpRewardRouter(){
   const gmxVester = await contractAt("Vester", gmxVesterAddr)
   const glpVester = await contractAt("Vester", glpVesterAddr)
   
-  //await glpManager.setHandler(rewardRouter.address, false)
-  //sleep(sleepTime)
-  // await feeGlpTracker.setHandler(rewardRouter.address, false)
-  // sleep(sleepTime)
-  // await stakedGlpTracker.setHandler(rewardRouter.address, false)
-  // sleep(sleepTime)
-  // await gmxVester.setHandler(rewardRouter.address, false)
-  // sleep(sleepTime)
-  // await glpVester.setHandler(rewardRouter.address, false)
-  // sleep(sleepTime)
-  console.log("done!")
-  //const glpRewardRouter = await contractAt("RewardRouterV2", glpRewardRouterAddr)
-
-
+  // await sendTxn( glpManager.setHandler(rewardRouter.address, false),"glpManager.setHandler")
+  // await sendTxn( feeGlpTracker.setHandler(rewardRouter.address, false),"feeGlpTracker.setHandler")
+  // await sendTxn( stakedGlpTracker.setHandler(rewardRouter.address, false),"stakedGlpTracker.setHandler")
+  // await sendTxn( gmxVester.setHandler(rewardRouter.address, false),"gmxVester.setHandler")
+  // await sendTxn( glpVester.setHandler(rewardRouter.address, false),"glpVester.setHandler")
 }
 
 async function fixTimelockRewardRouter(){
@@ -631,101 +583,39 @@ async function fixTimelockRewardRouter(){
 
   
   //1.先将权限归还给account
-  // await timelock.signalSetGov(vaultAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(vaultPriceFeedAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(fastPriceFeedAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(glpManagerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(stakedGmxTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(bonusGmxTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(feeGmxTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(feeGlpTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(stakedGlpTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(stakedGmxDistributorAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(stakedGlpDistributorAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(esGmxAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(bnGMXAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(gmxVesterAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.signalSetGov(glpVesterAddr,account)
-  // sleep(sleepTime)
+  // await sendTxn( timelock.signalSetGov(vaultAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(vaultPriceFeedAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(fastPriceFeedAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(glpManagerAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(stakedGmxTrackerAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(bonusGmxTrackerAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(feeGmxTrackerAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(feeGlpTrackerAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(stakedGlpTrackerAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(stakedGmxDistributorAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(stakedGlpDistributorAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(esGmxAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(bnGMXAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(gmxVesterAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(glpVesterAddr,account),"timelock.signalSetGov")
+  // await sendTxn( timelock.signalSetGov(routerAddr,account),"timelock.signalSetGov")
 
-    // await timelock.signalSetGov(routerAddr,account)
-    // sleep(sleepTime)
-
-    // await timelock.setGov(routerAddr,account)
-    // sleep(sleepTime)
-
-  // await timelock.setGov(vaultAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(vaultPriceFeedAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(fastPriceFeedAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(glpManagerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(stakedGmxTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(bonusGmxTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(feeGmxTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(feeGlpTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(stakedGlpTrackerAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(stakedGmxDistributorAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(stakedGlpDistributorAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(esGmxAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(bnGMXAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(gmxVesterAddr,account)
-  // sleep(sleepTime)
-  // console.log("1")
-  // await timelock.setGov(glpVesterAddr,account)
-  // sleep(sleepTime)
+  // await sendTxn( timelock.setGov(routerAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(vaultAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(vaultPriceFeedAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(fastPriceFeedAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(glpManagerAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(stakedGmxTrackerAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(bonusGmxTrackerAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(feeGmxTrackerAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(feeGlpTrackerAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(stakedGlpTrackerAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(stakedGmxDistributorAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(stakedGlpDistributorAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(esGmxAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(bnGMXAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(gmxVesterAddr,account),"timelock.setGov")
+  // await sendTxn( timelock.setGov(glpVesterAddr,account),"timelock.setGov")
 
 }
 
@@ -746,43 +636,23 @@ async function deploySetHandler(){
     const gmxVester = await contractAt("Vester", gmxVesterAddr)
     const glpVester = await contractAt("Vester", glpVesterAddr)
 
-    await esGmx.setHandler(rewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await stakedGmxTracker.setHandler(rewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await bonusGmxTracker.setHandler(rewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await feeGmxTracker.setHandler(rewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await stakedGlpTracker.setHandler(rewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await stakedGlpTracker.setHandler(glpRewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await feeGlpTracker.setHandler(glpRewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await feeGlpTracker.setHandler(rewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await gmxVester.setHandler(rewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")
-    await glpVester.setHandler(rewardRouterAddr,true)
-    sleep(sleepTime)
-    console.log("1")   
+    await sendTxn( esGmx.setHandler(rewardRouterAddr,true),"esGmx.setHandler")
+    await sendTxn( stakedGmxTracker.setHandler(rewardRouterAddr,true),"stakedGmxTracker.setHandler")
+    await sendTxn( bonusGmxTracker.setHandler(rewardRouterAddr,true),"bonusGmxTracker.setHandler")
+    await sendTxn( feeGmxTracker.setHandler(rewardRouterAddr,true),"feeGmxTracker.setHandler")
+    await sendTxn( stakedGlpTracker.setHandler(rewardRouterAddr,true),"stakedGlpTracker.setHandler")
+    await sendTxn( stakedGlpTracker.setHandler(glpRewardRouterAddr,true),"stakedGlpTracker.setHandler")
+    await sendTxn( feeGlpTracker.setHandler(glpRewardRouterAddr,true),"feeGlpTracker.setHandler")
+    await sendTxn( feeGlpTracker.setHandler(rewardRouterAddr,true),"feeGlpTracker.setHandler")
+    await sendTxn( gmxVester.setHandler(rewardRouterAddr,true),"gmxVester.setHandler")
+    await sendTxn( glpVester.setHandler(rewardRouterAddr,true),"glpVester.setHandler")
 }
 
 async function deployTimelock(){
   // const timelock = await deployContract("Timelock", [
   //   account, // _admin
   //   10, // _buffer
-  //   account, // _tokenManager //XJTODO
+  //   tokenManagerAddr, // _tokenManager //XJTODO
   //   account, // _mintReceiver
   //   glpManagerAddr, // _glpManager
   //   glpRewardRouterAddr, // _rewardRouter
@@ -815,43 +685,24 @@ async function deployTimelock(){
   const glpManager = await contractAt("GlpManager", glpManagerAddr)
   const usdg = await contractAt("USDG", usdgAddr)
 
-  // await router.setGov(timelock.address)
-  // sleep(sleepTime)
-
-  // await vault.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await vaultPriceFeed.setGov(timelock.address)
-  // sleep(sleepTime)
-
-  // await fastPriceFeed.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await glpManager.setGov(timelock.address)
-  // console.log("111111")
-  // sleep(sleepTime)
-  // await stakedGmxTracker.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await bonusGmxTracker.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await feeGmxTracker.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await feeGlpTracker.setGov(timelock.address)
-  // console.log("111112")
-  // sleep(sleepTime)
-  // await stakedGlpTracker.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await stakedGmxDistributor.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await stakedGlpDistributor.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await esGmx.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await bnGmx.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await gmxVester.setGov(timelock.address)
-  // sleep(sleepTime)
-  // await glpVester.setGov(timelock.address)
-
-  //await sendTxn(usdg.setGov(timelock.address),"usdg.setGov")
+  // await sendTxn( router.setGov(timelock.address),"router.setGov")
+  // await sendTxn( vault.setGov(timelock.address),"vault.setGov")
+  // await sendTxn( vaultPriceFeed.setGov(timelock.address),"vaultPriceFeed.setGov")
+  
+  // await sendTxn( fastPriceFeed.setGov(timelock.address),"fastPriceFeed.setGov")
+  // await sendTxn( glpManager.setGov(timelock.address),"glpManager.setGov")
+  // await sendTxn( stakedGmxTracker.setGov(timelock.address),"stakedGmxTracker.setGov")
+  // await sendTxn( bonusGmxTracker.setGov(timelock.address),"bonusGmxTracker.setGov")
+  // await sendTxn( feeGmxTracker.setGov(timelock.address),"feeGmxTracker.setGov")
+  // await sendTxn( feeGlpTracker.setGov(timelock.address),"feeGlpTracker.setGov")
+  // await sendTxn( stakedGlpTracker.setGov(timelock.address),"stakedGlpTracker.setGov")
+  // await sendTxn( stakedGmxDistributor.setGov(timelock.address),"stakedGmxDistributor.setGov")
+  // await sendTxn( stakedGlpDistributor.setGov(timelock.address),"stakedGlpDistributor.setGov")
+  // await sendTxn( esGmx.setGov(timelock.address),"esGmx.setGov")
+  // await sendTxn( bnGmx.setGov(timelock.address),"bnGmx.setGov")
+  // await sendTxn( gmxVester.setGov(timelock.address),"gmxVester.setGov")
+  // await sendTxn( glpVester.setGov(timelock.address),"glpVester.setGov")
+  // await sendTxn(usdg.setGov(timelock.address),"usdg.setGov")
 }
 
 async function testBuyGlp(){
@@ -1074,9 +925,7 @@ async function deployPositionManager2(){
   //await sendTxn(positionManager2.setLiquidator(liweiAccount, true), "positionManager.setLiquidator(liquidator)")
   await sendTxn(timelock.setContractHandler(positionManager2Addr,true))
 
-
   //2
-  
   //await sendTxn(positionManager.setReferralStorage(referralStorageAddr), "positionManager.setReferralStorage")
   //await sendTxn(positionManager.setShouldValidateIncreaseOrder(false), "positionManager.setShouldValidateIncreaseOrder(false)")
 
@@ -1089,6 +938,7 @@ async function deployPositionManager2(){
   const router = await contractAt("Router", routerAddr)
   //await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
 
+  //暂不设置
   // for (let i = 0; i < orderKeepers.length; i++) {
   //   const orderKeeper = orderKeepers[i]
   //   if (!(await positionManager.isOrderKeeper(orderKeeper.address))) {
@@ -1102,7 +952,6 @@ async function deployPositionManager2(){
   //     await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
   //   }
   // }
-  console.log("finish")
 }
 
 async function configVaultPriceFeed(){
@@ -1121,8 +970,6 @@ async function changeVaultLeverage(){
 async function mintGMX(){
   const gmx = await contractAt("GMX", gmxAddr)
   //await sendTxn(gmx.mint(account,expandDecimals(10000, 18)), "gmx.mint")
-  //await sendTxn(gmx.mint(gmxVesterAddr,expandDecimals(10000, 18)), "gmx.mint")
-  await sendTxn(gmx.mint(glpVesterAddr,expandDecimals(10000, 18)), "gmx.mint")
 }
 
 async function setIsGlobalShortDataReady(){
@@ -1133,10 +980,9 @@ async function setIsGlobalShortDataReady(){
 
 
 async function main() {
-  //await deployTokenManager()
-  
   //部署dai,btc等
   //await deployToken();
+  //await deployTokenManager()
   //await deployVault()
   //await deployGmxGlpManager()
   //await setTokenConfig()
@@ -1151,33 +997,18 @@ async function main() {
   //await deployGmxToken()
   //await deployRewardReader()
   //await deployGlpRewardRouter()
-  //await  fixTimelockRewardRouter()
   //await deploySetHandler()
-  //await deployTimelock()
-  //await testBuyGlp()
-  //await deployMulticall()
   //await configContract()
-
   //await deployGmxTimelock()
   //await deployPositionTimelock()
   //await deployPriceFeedTimelock()
   //await deployReferralStorageTimelock()
   //await setLiquidator()
   //await addPlugin()
-
   //await configFastPriceFeed()
-
-  //await  deployPositionManager2()
-
-  //await configVaultPriceFeed()
-
-  //await changeVaultLeverage()
-
   //await configVault()
-
-  await mintGMX()
-
-  //await setIsGlobalShortDataReady()
+  //await deployTimelock()
+  //await  deployPositionManager2()
   
 }
 
