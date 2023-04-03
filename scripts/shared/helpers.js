@@ -72,7 +72,7 @@ async function sendTxn(txnPromise, label) {
   console.info(`Sending ${label}...`)
   await txn.wait()
   console.info(`... Sent! ${txn.hash}`)
-  await sleep(2000)
+  await sleep(32000)
   return txn
 }
 
@@ -112,6 +112,7 @@ async function deployContract(name, args, label, options) {
   console.info(`Deploying ${info} ${contract.address} ${argStr}`)
   await contract.deployTransaction.wait()
   console.info("... Completed!")
+  sleep(6)
   return contract
 }
 
