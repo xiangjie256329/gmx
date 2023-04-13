@@ -138,6 +138,7 @@ async function deployVault() {
   ////shortsTracker 的gov是 ShortsTrackerTimelock
   //const shortsTracker = await deployContract("ShortsTracker", [vault.address])
   const shortsTracker = await contractAt("ShortsTracker", shortsTrackerAddr)
+  //await shortsTracker.setIsGlobalShortDataReady(true)
 
   const glpCooldownDuration = 0 //买入glp后马上可以卖出
   //const glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address,shortsTracker.address, glpCooldownDuration])
@@ -978,6 +979,23 @@ async function setIsGlobalShortDataReady(){
   await sendTxn(shortsTrackerTimelock.setIsGlobalShortDataReady(shortsTrackerAddr,false), "signalSetIsGlobalShortDataReady")
 }
 
+async function deployPriceFeedPyth(){
+  const priceFeedPyth = await deployContract("PriceFeedPyth", [
+   // "0xf087c864AEccFb6A2Bf1Af6A0382B0d0f6c5D834", //zk
+    "0xff1a0f4744e8582DF1aE09D5611b887B6a12925C",//op
+   // "0xf9c0172ba10dfa4d19088d94f5bf61d3b54d5bd7483a322a982e1373ee8ea31b"
+   //"0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43" //btc
+    "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace" //eth
+  ])
+
+}
+
+async function deployPriceFeedRedStone(){
+  const priceFeedRedStone = await deployContract("PriceFeedRedStone", [
+    "0x2e441aDC345dAeB11Ff9c2caE7eFD461E5525850"
+  ])
+
+}
 
 async function main() {
   //部署dai,btc等
@@ -1009,6 +1027,9 @@ async function main() {
   //await configVault()
   //await deployTimelock()
   //await  deployPositionManager2()
+
+  await deployPriceFeedPyth()
+  //await deployPriceFeedRedStone()
   
 }
 
