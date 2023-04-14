@@ -67,7 +67,10 @@ contract WETH is IERC20 {
     function withdraw(uint256 amount) public {
         require(_balances[msg.sender] >= amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        msg.sender.transfer(amount);
+        //msg.sender.transfer(amount);
+        //zk send
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Failed withdraw");
     }
 
     /**
