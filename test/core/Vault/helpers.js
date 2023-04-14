@@ -129,7 +129,7 @@ function getEthConfig(eth, ethPriceFeed) {
 function getBtcConfig(btc, btcPriceFeed) {
   return [
     btc.address, // _token
-    18, // _tokenDecimals
+    8, // _tokenDecimals
     40000, // _tokenWeight
     75, // _minProfitBps
     0, // _maxUsdgAmount
